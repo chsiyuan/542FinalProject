@@ -16,7 +16,9 @@ limitations under the License.
 // An example Op.
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <cfloat>
+#include <cmath>
 
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/framework/op.h"
@@ -35,7 +37,8 @@ REGISTER_OP("RoiPool")
     .Input("bottom_data: T")
     .Input("bottom_rois: T")
     .Output("top_data: T")
-    .Output("argmax: int32");
+    .Output("argmax_x: T");
+    .Output("argmax_y: T");
 
 REGISTER_OP("RoiPoolGrad")
     .Attr("T: {float, double}")
@@ -44,7 +47,8 @@ REGISTER_OP("RoiPoolGrad")
     .Attr("spatial_scale: float")
     .Input("bottom_data: T")
     .Input("bottom_rois: T")
-    .Input("argmax: int32")
+    .Input("argmax_x: T")
+    .Input("argmax_y: T")
     .Input("grad: T")
     .Output("output: T");
 
@@ -112,9 +116,16 @@ class RoiPoolOp : public OpKernel {
     OP_REQUIRES_OK(context, context->allocate_output(0, output_shape, &output_tensor));
     auto output = output_tensor->template flat<T>();
 
-    Tensor* argmax_tensor = NULL;
-    OP_REQUIRES_OK(context, context->allocate_output(1, output_shape, &argmax_tensor));
-    auto argmax = argmax_tensor->template flat<int>();
+    // Tensor* argmax_tensor = NULL;
+    // OP_REQUIRES_OK(context, context->allocate_output(1, output_shape, &argmax_tensor));
+    // auto argmax = argmax_tensor->template flat<T>();
+    Tensor* argmax_x_tensor = NULL;
+    OP_REQUIRES_OK(context, context->allocate_output(1, output_shape, &argmax_x_tensor));
+    auto argmax_x = argmax_x_tensor->template flat<T>();
+
+    Tensor* argmax_y_tensor = NULL;
+    OP_REQUIRES_OK(context, context->allocate_output(2, output_shape, &argmax_y_tensor));
+    auto argmax_y = argmax_y_tensor->template flat<T>();
 
     int pooled_height = pooled_height_;
     int pooled_width = pooled_width_;
@@ -122,7 +133,7 @@ class RoiPoolOp : public OpKernel {
 
     auto shard = [pooled_height, pooled_width, spatial_scale,
                   num_rois, batch_size, data_height, data_width, num_channels,
-                  &bottom_data_flat, &bottom_rois_flat, &output, &argmax]
+                  &bottom_data_flat, &bottom_rois_flat, &output, &argmax_x, &argmax_y]
                   (int64 start, int64 limit) {
       for (int64 b = start; b < limit; ++b)
       {
@@ -138,26 +149,37 @@ class RoiPoolOp : public OpKernel {
         // Notes: Get the roi in the feature map
         // For roi align, this step should not use round
         const float* bottom_rois = bottom_rois_flat.data() + n * 5;
+        // roi_batch_ind means the index of current roi.
         int roi_batch_ind = bottom_rois[0];
-        int roi_start_w = round(bottom_rois[1] * spatial_scale);
-        int roi_start_h = round(bottom_rois[2] * spatial_scale);
-        int roi_end_w = round(bottom_rois[3] * spatial_scale);
-        int roi_end_h = round(bottom_rois[4] * spatial_scale);
+        // int roi_start_w = round(bottom_rois[1] * spatial_scale);
+        // int roi_start_h = round(bottom_rois[2] * spatial_scale);
+        // int roi_end_w = round(bottom_rois[3] * spatial_scale);
+        // int roi_end_h = round(bottom_rois[4] * spatial_scale);
+        float roi_start_w = bottom_rois[1] * spatial_scale;
+        float roi_start_h = bottom_rois[2] * spatial_scale;
+        float roi_end_w = bottom_rois[3] * spatial_scale;
+        float roi_end_h = bottom_rois[4] * spatial_scale;
 
         // Force malformed ROIs to be 1x1  
         // Notes: This step is not needed for roi align
-        int roi_width = std::max(roi_end_w - roi_start_w + 1, 1);
-        int roi_height = std::max(roi_end_h - roi_start_h + 1, 1);
+        //int roi_width = std::max(roi_end_w - roi_start_w + 1, 1);
+        //int roi_height = std::max(roi_end_h - roi_start_h + 1, 1);
+        float roi_width = roi_end_w - roi_start_w;
+        float roi_height = roi_end_h - roi_start_h;
         const T bin_size_h = static_cast<T>(roi_height)
                            / static_cast<T>(pooled_height);
         const T bin_size_w = static_cast<T>(roi_width)
                            / static_cast<T>(pooled_width);
 
-        // Notes: here these coordinates are relative to every bbox
-        int hstart = static_cast<int>(floor(ph * bin_size_h));
-        int wstart = static_cast<int>(floor(pw * bin_size_w));
-        int hend = static_cast<int>(ceil((ph + 1) * bin_size_h));
-        int wend = static_cast<int>(ceil((pw + 1) * bin_size_w));
+        // Notes: here these are coordinates of every bin relative to every bbox
+        // int hstart = static_cast<int>(floor(ph * bin_size_h));
+        // int wstart = static_cast<int>(floor(pw * bin_size_w));
+        // int hend = static_cast<int>(ceil((ph + 1) * bin_size_h));
+        // int wend = static_cast<int>(ceil((pw + 1) * bin_size_w));
+        float hstart = static_cast<float>(ph * bin_size_h);
+        float wstart = static_cast<float>(pw * bin_size_w);
+        float hend = static_cast<float>((ph + 1) * bin_size_h);
+        float wend = static_cast<float>((pw + 1) * bin_size_w);
 
         // Add roi offsets and clip to input boundaries
         hstart = std::min(std::max(hstart + roi_start_h, 0), data_height);
@@ -169,19 +191,55 @@ class RoiPoolOp : public OpKernel {
         // Define an empty pooling region to be zero
         float maxval = is_empty ? 0 : -FLT_MAX;
         // If nothing is pooled, argmax = -1 causes nothing to be backprop'd
-        int maxidx = -1;
+        float maxidx_x = -1.0;
+        float maxidx_y = -1.0;
         const float* bottom_data = bottom_data_flat.data() + roi_batch_ind * num_channels * data_height * data_width;
-        for (int h = hstart; h < hend; ++h) {
-          for (int w = wstart; w < wend; ++w) {
-            int bottom_index = (h * data_width + w) * num_channels + c;
-            if (bottom_data[bottom_index] > maxval) {
-              maxval = bottom_data[bottom_index];
-              maxidx = bottom_index;
+        // for (int h = hstart; h < hend; ++h) {
+        //   for (int w = wstart; w < wend; ++w) {
+        //     int bottom_index = (h * data_width + w) * num_channels + c;
+        //     if (bottom_data[bottom_index] > maxval) {
+        //       maxval = bottom_data[bottom_index];
+        //       maxidx = bottom_index;
+        //     }
+        //   }
+        // }
+
+        // Notes: Get four random points in the bin
+        if(!is_empty){
+          for (int i = 0; i < 4; ++i)
+          {
+            float randPoint[2];
+            float rh = (rand() % 1000) / 1000.0;
+            randPoint[0] = rh * (hstart - hend) + hstart;
+            float rw = (rand() % 1000) / 1000.0;
+            randPoint[1] = rw * (wstart - wend) + wstart;
+            // Notes: Calculate the interpolation for the point
+            int topleft[2] = {floor(randPoint[0]) , floor(randPoint[1])};
+            int tl_index = (topleft[0] * data_width + topleft[1]) * num_channels + c;
+
+            int topright[2] = {floor(randPoint[0]) , ceil(randPoint[1])};
+            int tr_index = (topright[0] * data_width + topright[1]) * num_channels + c;
+
+            int botleft[2] = {ceil(randPoint[0]) , floor(randPoint[1])};
+            int bl_index = (botleft[0] * data_width + botleft[1]) * num_channels + c;
+
+            int botright[2] = {ceil(randPoint[0]) , ceil(randPoint[1])};
+            int br_index = (botright[0] * data_width + botright[1]) * num_channels + c;
+
+            float randValue = (1-rh) * (1-rw) * bottom_data[tl_index]
+                          + (1-rh) * rw * bottom_data[tr_index]
+                          + rh * (1-rw) * bottom_data[bl_index]
+                          + rh * rw * bottom_data[br_index];
+            if(randValue > maxval){
+              maxval = randValue;
+              maxidx_x = randPoint[0];
+              maxidx_y = randPoint[1];
             }
           }
         }
         output(b) = maxval;
-        argmax(b) = maxidx;
+        argmax_x(b) = maxidx_x;
+        argmax_y(b) = maxidx_y;
       }
     };
 
@@ -202,7 +260,7 @@ bool ROIPoolForwardLaucher(
     const float* bottom_data, const float spatial_scale, const int num_rois, const int height,
     const int width, const int channels, const int pooled_height,
     const int pooled_width, const float* bottom_rois,
-    float* top_data, int* argmax_data, const Eigen::GpuDevice& d);
+    float* top_data, float* argmax_data_x, float* argmax_data_y, const Eigen::GpuDevice& d);
 
 static void RoiPoolingKernel(
     OpKernelContext* context, const Tensor* bottom_data, const Tensor* bottom_rois,
@@ -211,9 +269,11 @@ static void RoiPoolingKernel(
     const int pooled_width, const TensorShape& tensor_output_shape)
 {
   Tensor* output = nullptr;
-  Tensor* argmax = nullptr;
+  Tensor* argmax_x = nullptr;
+  Tensor* argmax_y = nullptr;
   OP_REQUIRES_OK(context, context->allocate_output(0, tensor_output_shape, &output));
-  OP_REQUIRES_OK(context, context->allocate_output(1, tensor_output_shape, &argmax));
+  OP_REQUIRES_OK(context, context->allocate_output(1, tensor_output_shape, &argmax_x));
+  OP_REQUIRES_OK(context, context->allocate_output(2, tensor_output_shape, &argmax_y));
 
   if (!context->status().ok()) {
     return;
@@ -222,7 +282,7 @@ static void RoiPoolingKernel(
   ROIPoolForwardLaucher(
     bottom_data->flat<float>().data(), spatial_scale, num_rois, height,
     width, channels, pooled_height, pooled_width, bottom_rois->flat<float>().data(),
-    output->flat<float>().data(), argmax->flat<int>().data(), context->eigen_device<Eigen::GpuDevice>());
+    output->flat<float>().data(), argmax_x->flat<float>().data(), argmax_y->flat<float>().data(), context->eigen_device<Eigen::GpuDevice>());
 }
 
 template <class T>
@@ -325,12 +385,14 @@ class RoiPoolGradOp : public OpKernel {
     // Grab the input tensor
     const Tensor& bottom_data = context->input(0);
     const Tensor& bottom_rois = context->input(1);
-    const Tensor& argmax_data = context->input(2);
-    const Tensor& out_backprop = context->input(3);
+    const Tensor& argmax_data_x = context->input(2);
+    const Tensor& argmax_data_y = context->input(3);
+    const Tensor& out_backprop = context->input(4);
 
     auto bottom_data_flat = bottom_data.flat<T>();
     auto bottom_rois_flat = bottom_rois.flat<T>();
-    auto argmax_data_flat = argmax_data.flat<int32>();
+    auto argmax_data_x_flat = argmax_data_x.flat<T>();
+    auto argmax_data_y_flat = argmax_data_y.flat<T>();
     auto out_backprop_flat = out_backprop.flat<T>();
 
     // data should have 4 dimensions.
@@ -341,8 +403,11 @@ class RoiPoolGradOp : public OpKernel {
     OP_REQUIRES(context, bottom_rois.dims() == 2,
                 errors::InvalidArgument("rois must be 2-dimensional"));
 
-    OP_REQUIRES(context, argmax_data.dims() == 4,
-                errors::InvalidArgument("argmax_data must be 4-dimensional"));
+    OP_REQUIRES(context, argmax_data_x.dims() == 4,
+                errors::InvalidArgument("argmax_data_x must be 4-dimensional"));
+
+    OP_REQUIRES(context, argmax_data_y.dims() == 4,
+                errors::InvalidArgument("argmax_data_y must be 4-dimensional"));
 
     OP_REQUIRES(context, out_backprop.dims() == 4,
                 errors::InvalidArgument("out_backprop must be 4-dimensional"));
@@ -372,7 +437,7 @@ class RoiPoolGradOp : public OpKernel {
 
     auto shard = [pooled_height, pooled_width, spatial_scale,
                   num_rois, batch_size, data_height, data_width, num_channels,
-                  &bottom_data_flat, &bottom_rois_flat, &argmax_data_flat,
+                  &bottom_data_flat, &bottom_rois_flat, &argmax_data_x_flat, &argmax_data_y_flat,
                   &out_backprop_flat, &output](int64 start, int64 limit) {
       for (int64 b = start; b < limit; ++b)
       {
@@ -396,10 +461,11 @@ class RoiPoolGradOp : public OpKernel {
             continue;
           }
 
-          int roi_start_w = round(offset_bottom_rois[1] * spatial_scale);
-          int roi_start_h = round(offset_bottom_rois[2] * spatial_scale);
-          int roi_end_w = round(offset_bottom_rois[3] * spatial_scale);
-          int roi_end_h = round(offset_bottom_rois[4] * spatial_scale);
+          // Notes: Calculate the region in feature map that is possible to be used by roi.
+          int roi_start_w = floor(offset_bottom_rois[1] * spatial_scale);
+          int roi_start_h = floor(offset_bottom_rois[2] * spatial_scale);
+          int roi_end_w = ceil(offset_bottom_rois[3] * spatial_scale);
+          int roi_end_h = ceil(offset_bottom_rois[4] * spatial_scale);
 
           // Skip if ROI doesn't include (h, w)
           const bool in_roi = (w >= roi_start_w && w <= roi_end_w &&
@@ -410,38 +476,70 @@ class RoiPoolGradOp : public OpKernel {
 
           int offset = roi_n * pooled_height * pooled_width * num_channels;
           const float* offset_top_diff = out_backprop_flat.data() + offset;
-          const int* offset_argmax_data = argmax_data_flat.data() + offset;
+          const float* offset_argmax_data_x = argmax_data_x_flat.data() + offset;
+          const float* offset_argmax_data_y = argmax_data_y_flat.data() + offset;
 
           // Compute feasible set of pooled units that could have pooled
           // this bottom unit
-
-          // Force malformed ROIs to be 1x1
-          int roi_width = std::max(roi_end_w - roi_start_w + 1, 1);
-          int roi_height = std::max(roi_end_h - roi_start_h + 1, 1);
-
+          float roi_width = roi_end_w - roi_start_w;
+          float roi_height = roi_end_h - roi_start_h;
           const T bin_size_h = static_cast<T>(roi_height)
-                             / static_cast<T>(pooled_height);
+                   / static_cast<T>(pooled_height);
           const T bin_size_w = static_cast<T>(roi_width)
-                             / static_cast<T>(pooled_width);
+                   / static_cast<T>(pooled_width);
 
-          int phstart = floor(static_cast<int>(h - roi_start_h) / bin_size_h);
-          int phend = ceil(static_cast<int>(h - roi_start_h + 1) / bin_size_h);
-          int pwstart = floor(static_cast<int>(w - roi_start_w) / bin_size_w);
-          int pwend = ceil(static_cast<int>(w - roi_start_w + 1) / bin_size_w);
+          for (int ph = 0; ph < pooled_height; ++ph)
+          {
+            for (int pw = 0; pw < pooled_width; ++pw)
+            {
+              float maxidx_x = offset_argmax_data_x[(ph * pooled_width + pw) * num_channels + c];
+              float maxidx_y = offset_argmax_data_y[(ph * pooled_width + pw) * num_channels + c];
+              // If maxdix_x = maxidx_y = -1, it will skip this [if] branch.
+              if(abs(maxidx_x - h) < 1 && abs(maxidx_y - w) < 1){
+                float hstart = static_cast<float>(ph * bin_size_h);
+                float wstart = static_cast<float>(pw * bin_size_w);
+                float hend = static_cast<float>((ph + 1) * bin_size_h);
+                float wend = static_cast<float>((pw + 1) * bin_size_w);
 
-          phstart = std::min(std::max(phstart, 0), pooled_height);
-          phend = std::min(std::max(phend, 0), pooled_height);
-          pwstart = std::min(std::max(pwstart, 0), pooled_width);
-          pwend = std::min(std::max(pwend, 0), pooled_width);
+                // Add roi offsets and clip to input boundaries
+                hstart = std::min(std::max(hstart + roi_start_h, 0), data_height);
+                hend = std::min(std::max(hend + roi_start_h, 0), data_height);
+                wstart = std::min(std::max(wstart + roi_start_w, 0), data_width);
+                wend = std::min(std::max(wend + roi_start_w, 0), data_width);
 
-          for (int ph = phstart; ph < phend; ++ph) {
-            for (int pw = pwstart; pw < pwend; ++pw) {
-              if (offset_argmax_data[(ph * pooled_width + pw) * num_channels + c] == (h * data_width + w) * num_channels + c)
-              {
-                gradient += offset_top_diff[(ph * pooled_width + pw) * num_channels + c];
+                float coeff = (1 - abs(maxidx_x - h)/(hend - hstart)) * (1 - abs(maxidx_y - w)/(wend - wstart));
+                gradient += offset_top_diff[(ph * pooled_width + pw) * num_channels + c] * coeff;
               }
             }
           }
+
+          // Force malformed ROIs to be 1x1
+          // int roi_width = std::max(roi_end_w - roi_start_w + 1, 1);
+          // int roi_height = std::max(roi_end_h - roi_start_h + 1, 1);
+
+          // const T bin_size_h = static_cast<T>(roi_height)
+          //                    / static_cast<T>(pooled_height);
+          // const T bin_size_w = static_cast<T>(roi_width)
+          //                    / static_cast<T>(pooled_width);
+
+          // int phstart = floor(static_cast<int>(h - roi_start_h) / bin_size_h);
+          // int phend = ceil(static_cast<int>(h - roi_start_h + 1) / bin_size_h);
+          // int pwstart = floor(static_cast<int>(w - roi_start_w) / bin_size_w);
+          // int pwend = ceil(static_cast<int>(w - roi_start_w + 1) / bin_size_w);
+
+          // phstart = std::min(std::max(phstart, 0), pooled_height);
+          // phend = std::min(std::max(phend, 0), pooled_height);
+          // pwstart = std::min(std::max(pwstart, 0), pooled_width);
+          // pwend = std::min(std::max(pwend, 0), pooled_width);
+
+          // for (int ph = phstart; ph < phend; ++ph) {
+          //   for (int pw = pwstart; pw < pwend; ++pw) {
+          //     if (offset_argmax_data[(ph * pooled_width + pw) * num_channels + c] == (h * data_width + w) * num_channels + c)
+          //     {
+          //       gradient += offset_top_diff[(ph * pooled_width + pw) * num_channels + c];
+          //     }
+          //   }
+          // }
         }
         output(b) = gradient;
       }
@@ -463,10 +561,11 @@ class RoiPoolGradOp : public OpKernel {
 bool ROIPoolBackwardLaucher(const float* top_diff, const float spatial_scale, const int batch_size, const int num_rois,
     const int height, const int width, const int channels, const int pooled_height,
     const int pooled_width, const float* bottom_rois,
-    float* bottom_diff, const int* argmax_data, const Eigen::GpuDevice& d);
+    float* bottom_diff, const float* argmax_data_x, const float* argmax_data_y, const Eigen::GpuDevice& d);
 
 static void RoiPoolingGradKernel(
-    OpKernelContext* context, const Tensor* bottom_data, const Tensor* bottom_rois, const Tensor* argmax_data, const Tensor* out_backprop,
+    OpKernelContext* context, const Tensor* bottom_data, const Tensor* bottom_rois, const Tensor* argmax_data_x, 
+    const Tensor* argmax_data_y, const Tensor* out_backprop,
     const float spatial_scale, const int batch_size, const int num_rois, const int height,
     const int width, const int channels, const int pooled_height,
     const int pooled_width, const TensorShape& tensor_output_shape)
@@ -481,7 +580,8 @@ static void RoiPoolingGradKernel(
   ROIPoolBackwardLaucher(
     out_backprop->flat<float>().data(), spatial_scale, batch_size, num_rois, height,
     width, channels, pooled_height, pooled_width, bottom_rois->flat<float>().data(),
-    output->flat<float>().data(), argmax_data->flat<int>().data(), context->eigen_device<Eigen::GpuDevice>());
+    output->flat<float>().data(), argmax_data_x->flat<float>().data(), argmax_data_y->flat<float>().data(),
+    context->eigen_device<Eigen::GpuDevice>());
 }
 
 
@@ -514,8 +614,9 @@ class RoiPoolGradOp<Eigen::GpuDevice, T> : public OpKernel {
     // Grab the input tensor
     const Tensor& bottom_data = context->input(0);
     const Tensor& bottom_rois = context->input(1);
-    const Tensor& argmax_data = context->input(2);
-    const Tensor& out_backprop = context->input(3);
+    const Tensor& argmax_data_x = context->input(2);
+    const Tensor& argmax_data_y = context->input(3);
+    const Tensor& out_backprop = context->input(4);
 
     // data should have 4 dimensions.
     OP_REQUIRES(context, bottom_data.dims() == 4,
@@ -525,8 +626,11 @@ class RoiPoolGradOp<Eigen::GpuDevice, T> : public OpKernel {
     OP_REQUIRES(context, bottom_rois.dims() == 2,
                 errors::InvalidArgument("rois must be 2-dimensional"));
 
-    OP_REQUIRES(context, argmax_data.dims() == 4,
-                errors::InvalidArgument("argmax_data must be 4-dimensional"));
+    OP_REQUIRES(context, argmax_data_x.dims() == 4,
+                errors::InvalidArgument("argmax_data_x must be 4-dimensional"));
+
+    OP_REQUIRES(context, argmax_data_y.dims() == 4,
+                errors::InvalidArgument("argmax_data_y must be 4-dimensional"));
 
     OP_REQUIRES(context, out_backprop.dims() == 4,
                 errors::InvalidArgument("out_backprop must be 4-dimensional"));
@@ -546,7 +650,7 @@ class RoiPoolGradOp<Eigen::GpuDevice, T> : public OpKernel {
     TensorShape output_shape = bottom_data.shape();
 
     RoiPoolingGradKernel(
-      context, &bottom_data, &bottom_rois, &argmax_data, &out_backprop,
+      context, &bottom_data, &bottom_rois, &argmax_data_x, &argmax_data_y, &out_backprop,
       spatial_scale_, batch_size, num_rois, height, width, channels, pooled_height_,
       pooled_width_, output_shape);
 
