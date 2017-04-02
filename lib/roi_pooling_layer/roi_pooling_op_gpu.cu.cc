@@ -130,7 +130,7 @@ bool ROIPoolForwardLaucher(
     const float* bottom_data, const float spatial_scale, const int num_rois, const int height,
     const int width, const int channels, const int pooled_height,
     const int pooled_width, const float* bottom_rois,
-    float* top_data, int* argmax_data, const Eigen::GpuDevice& d) 
+    float* top_data, float* argmax_data_x, float* argmax_data_y, const Eigen::GpuDevice& d) 
 {
   const int kThreadsPerBlock = 1024;
   const int output_size = num_rois * pooled_height * pooled_width * channels;
