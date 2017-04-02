@@ -159,7 +159,7 @@ bool ROIPoolForwardLaucher(
 
 template <typename Dtype>
 __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
-    const int* argmax_data, const int num_rois, const Dtype spatial_scale,
+    const float* argmax_data_x, const float* argmax_data_y, const int num_rois, const Dtype spatial_scale,
     const int height, const int width, const int channels, 
     const int pooled_height, const int pooled_width, Dtype* bottom_diff,
     const Dtype* bottom_rois) {
@@ -185,10 +185,10 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
         continue;
       }
 
-      int roi_start_w = round(offset_bottom_rois[1] * spatial_scale);
-      int roi_start_h = round(offset_bottom_rois[2] * spatial_scale);
-      int roi_end_w = round(offset_bottom_rois[3] * spatial_scale);
-      int roi_end_h = round(offset_bottom_rois[4] * spatial_scale);
+      int roi_start_w = static_cast<int>(floor(offset_bottom_rois[1] * spatial_scale));
+      int roi_start_h = static_cast<int>(floor(offset_bottom_rois[2] * spatial_scale));
+      int roi_end_w = static_cast<int>(ceil(offset_bottom_rois[3] * spatial_scale));
+      int roi_end_h = static_cast<int>(ceil(offset_bottom_rois[4] * spatial_scale));
 
       // Skip if ROI doesn't include (h, w)
       const bool in_roi = (w >= roi_start_w && w <= roi_end_w &&
@@ -199,40 +199,50 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
 
       int offset = roi_n * pooled_height * pooled_width * channels;
       const Dtype* offset_top_diff = top_diff + offset;
-      const int* offset_argmax_data = argmax_data + offset;
+      const float* offset_argmax_data_x = argmax_data_x + offset;
+      const float* offset_argmax_data_y = argmax_data_y + offset;
 
       // Compute feasible set of pooled units that could have pooled
       // this bottom unit
 
       // Force malformed ROIs to be 1x1
-      int roi_width = max(roi_end_w - roi_start_w + 1, 1);
-      int roi_height = max(roi_end_h - roi_start_h + 1, 1);
+      // int roi_width = max(roi_end_w - roi_start_w + 1, 1);
+      // int roi_height = max(roi_end_h - roi_start_h + 1, 1);
+      float roi_width = roi_end_w - roi_start_w;
+      float roi_height = roi_end_h - roi_start_h;
 
       Dtype bin_size_h = static_cast<Dtype>(roi_height)
                          / static_cast<Dtype>(pooled_height);
       Dtype bin_size_w = static_cast<Dtype>(roi_width)
                          / static_cast<Dtype>(pooled_width);
 
-      int phstart = floor(static_cast<Dtype>(h - roi_start_h) / bin_size_h);
-      int phend = ceil(static_cast<Dtype>(h - roi_start_h + 1) / bin_size_h);
-      int pwstart = floor(static_cast<Dtype>(w - roi_start_w) / bin_size_w);
-      int pwend = ceil(static_cast<Dtype>(w - roi_start_w + 1) / bin_size_w);
+      for (int ph = 0; ph < pooled_height; ++ph)
+      {
+        for (int pw = 0; pw < pooled_width; ++pw)
+        {
+          float maxidx_x = offset_argmax_data_x[(ph * pooled_width + pw) * channels + c];
+          float maxidx_y = offset_argmax_data_y[(ph * pooled_width + pw) * channels + c];
+          // If maxdix_x = maxidx_y = -1, it will skip this [if] branch.
+          if(abs(maxidx_x - h) < 1 && abs(maxidx_y - w) < 1){
+            float hstart = static_cast<float>(ph * bin_size_h);
+            float wstart = static_cast<float>(pw * bin_size_w);
+            float hend = static_cast<float>((ph + 1) * bin_size_h);
+            float wend = static_cast<float>((pw + 1) * bin_size_w);
 
-      phstart = min(max(phstart, 0), pooled_height);
-      phend = min(max(phend, 0), pooled_height);
-      pwstart = min(max(pwstart, 0), pooled_width);
-      pwend = min(max(pwend, 0), pooled_width);
+            // Add roi offsets and clip to input boundaries
+            hstart = min(max(hstart + roi_start_h, (float)0), (float) height);
+            hend = min(max(hend + roi_start_h, (float)0), (float) height);
+            wstart = min(max(wstart + roi_start_w, (float)0), (float) width);
+            wend = min(max(wend + roi_start_w, (float)0), (float) width);
 
-      for (int ph = phstart; ph < phend; ++ph) {
-        for (int pw = pwstart; pw < pwend; ++pw) {
-          if (offset_argmax_data[(ph * pooled_width + pw) * channels + c] == (h * width + w) * channels + c) 
-          {
-            gradient += offset_top_diff[(ph * pooled_width + pw) * channels + c];
+            float coeff = (1 - abs(maxidx_x - h)/(hend - hstart)) * (1 - abs(maxidx_y - w)/(wend - wstart));
+            gradient += offset_top_diff[(ph * pooled_width + pw) * channels + c] * coeff;
           }
         }
       }
+
+      bottom_diff[index] = gradient;
     }
-    bottom_diff[index] = gradient;
   }
 }
 
@@ -240,7 +250,7 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
 bool ROIPoolBackwardLaucher(const float* top_diff, const float spatial_scale, const int batch_size, const int num_rois,
     const int height, const int width, const int channels, const int pooled_height,
     const int pooled_width, const float* bottom_rois,
-    float* bottom_diff, const int* argmax_data, const Eigen::GpuDevice& d) 
+    float* bottom_diff, const float* argmax_data_x, const float* argmax_data_y, const Eigen::GpuDevice& d) 
 {
   const int kThreadsPerBlock = 1024;
   const int output_size = batch_size * height * width * channels;
@@ -248,7 +258,7 @@ bool ROIPoolBackwardLaucher(const float* top_diff, const float spatial_scale, co
 
   ROIPoolBackward<<<(output_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
                        kThreadsPerBlock, 0, d.stream()>>>(
-      output_size, top_diff, argmax_data, num_rois, spatial_scale, height, width, channels, pooled_height,
+      output_size, top_diff, argmax_data_x, argmax_data_y, num_rois, spatial_scale, height, width, channels, pooled_height,
       pooled_width, bottom_diff, bottom_rois);
 
   err = cudaGetLastError();
