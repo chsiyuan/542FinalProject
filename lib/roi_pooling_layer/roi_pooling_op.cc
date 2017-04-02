@@ -37,7 +37,7 @@ REGISTER_OP("RoiPool")
     .Input("bottom_data: T")
     .Input("bottom_rois: T")
     .Output("top_data: T")
-    .Output("argmax_x: T");
+    .Output("argmax_x: T")
     .Output("argmax_y: T");
 
 REGISTER_OP("RoiPoolGrad")
@@ -182,10 +182,10 @@ class RoiPoolOp : public OpKernel {
         float wend = static_cast<float>((pw + 1) * bin_size_w);
 
         // Add roi offsets and clip to input boundaries
-        hstart = std::min(std::max(hstart + roi_start_h, 0.0), (float) data_height);
-        hend = std::min(std::max(hend + roi_start_h, 0.0), (float) data_height);
-        wstart = std::min(std::max(wstart + roi_start_w, 0.0), (float) data_width);
-        wend = std::min(std::max(wend + roi_start_w, 0.0), (float) data_width);
+        hstart = std::min(std::max(hstart + roi_start_h, (float)0), (float) data_height);
+        hend = std::min(std::max(hend + roi_start_h, (float)0), (float) data_height);
+        wstart = std::min(std::max(wstart + roi_start_w, (float)0), (float) data_width);
+        wend = std::min(std::max(wend + roi_start_w, (float)0), (float) data_width);
         bool is_empty = (hend <= hstart) || (wend <= wstart);
 
         // Define an empty pooling region to be zero
@@ -214,16 +214,16 @@ class RoiPoolOp : public OpKernel {
             float rw = (rand() % 1000) / 1000.0;
             randPoint[1] = rw * (wstart - wend) + wstart;
             // Notes: Calculate the interpolation for the point
-            int topleft[2] = {floor(randPoint[0]) , floor(randPoint[1])};
+            int topleft[2] = {static_cast<int>(floor(randPoint[0])), static_cast<int>((int)floor(randPoint[1]))};
             int tl_index = (topleft[0] * data_width + topleft[1]) * num_channels + c;
 
-            int topright[2] = {floor(randPoint[0]) , ceil(randPoint[1])};
+            int topright[2] = {static_cast<int>(floor(randPoint[0])), static_cast<int>(ceil(randPoint[1]))};
             int tr_index = (topright[0] * data_width + topright[1]) * num_channels + c;
 
-            int botleft[2] = {ceil(randPoint[0]) , floor(randPoint[1])};
+            int botleft[2] = {static_cast<int>(ceil(randPoint[0])), static_cast<int>(floor(randPoint[1]))};
             int bl_index = (botleft[0] * data_width + botleft[1]) * num_channels + c;
 
-            int botright[2] = {ceil(randPoint[0]) , ceil(randPoint[1])};
+            int botright[2] = {static_cast<int>(ceil(randPoint[0])), static_cast<int>(ceil(randPoint[1]))};
             int br_index = (botright[0] * data_width + botright[1]) * num_channels + c;
 
             float randValue = (1-rh) * (1-rw) * bottom_data[tl_index]
@@ -462,10 +462,10 @@ class RoiPoolGradOp : public OpKernel {
           }
 
           // Notes: Calculate the region in feature map that is possible to be used by roi.
-          int roi_start_w = floor(offset_bottom_rois[1] * spatial_scale);
-          int roi_start_h = floor(offset_bottom_rois[2] * spatial_scale);
-          int roi_end_w = ceil(offset_bottom_rois[3] * spatial_scale);
-          int roi_end_h = ceil(offset_bottom_rois[4] * spatial_scale);
+          int roi_start_w = static_cast<int>(floor(offset_bottom_rois[1] * spatial_scale));
+          int roi_start_h = static_cast<int>(floor(offset_bottom_rois[2] * spatial_scale));
+          int roi_end_w = static_cast<int>(ceil(offset_bottom_rois[3] * spatial_scale));
+          int roi_end_h = static_cast<int>(ceil(offset_bottom_rois[4] * spatial_scale));
 
           // Skip if ROI doesn't include (h, w)
           const bool in_roi = (w >= roi_start_w && w <= roi_end_w &&
@@ -495,19 +495,19 @@ class RoiPoolGradOp : public OpKernel {
               float maxidx_x = offset_argmax_data_x[(ph * pooled_width + pw) * num_channels + c];
               float maxidx_y = offset_argmax_data_y[(ph * pooled_width + pw) * num_channels + c];
               // If maxdix_x = maxidx_y = -1, it will skip this [if] branch.
-              if(abs(maxidx_x - h) < 1 && abs(maxidx_y - w) < 1){
+              if(std::abs(maxidx_x - h) < 1 && std::abs(maxidx_y - w) < 1){
                 float hstart = static_cast<float>(ph * bin_size_h);
                 float wstart = static_cast<float>(pw * bin_size_w);
                 float hend = static_cast<float>((ph + 1) * bin_size_h);
                 float wend = static_cast<float>((pw + 1) * bin_size_w);
 
                 // Add roi offsets and clip to input boundaries
-                hstart = std::min(std::max(hstart + roi_start_h, 0.0), (float) data_height);
-                hend = std::min(std::max(hend + roi_start_h, 0.0), (float) data_height);
-                wstart = std::min(std::max(wstart + roi_start_w, 0.0), (float) data_width);
-                wend = std::min(std::max(wend + roi_start_w, 0.0), (float) data_width);
+                hstart = std::min(std::max(hstart + roi_start_h, (float)0), (float) data_height);
+                hend = std::min(std::max(hend + roi_start_h, (float)0), (float) data_height);
+                wstart = std::min(std::max(wstart + roi_start_w, (float)0), (float) data_width);
+                wend = std::min(std::max(wend + roi_start_w, (float)0), (float) data_width);
 
-                float coeff = (1 - abs(maxidx_x - h)/(hend - hstart)) * (1 - abs(maxidx_y - w)/(wend - wstart));
+                float coeff = (1 - std::abs(maxidx_x - h)/(hend - hstart)) * (1 - std::abs(maxidx_y - w)/(wend - wstart));
                 gradient += offset_top_diff[(ph * pooled_width + pw) * num_channels + c] * coeff;
               }
             }
