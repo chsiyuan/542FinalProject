@@ -21,20 +21,20 @@ using std::abs;
 // namespace tensorflow {
 using namespace tensorflow;
 
-__global__ void random(unsigned int seed, int* result) {
-  /* CUDA's random number library uses curandState_t to keep track of the seed value
-     we will store a random state for every thread  */
-  curandState_t state;
+// __global__ void random(unsigned int seed, int* result) {
+//   /* CUDA's random number library uses curandState_t to keep track of the seed value
+//      we will store a random state for every thread  */
+//   curandState_t state;
 
-  /* we have to initialize the state */
-  curand_init(seed, /* the seed controls the sequence of random values that are produced */
-              0, /* the sequence number is only important with multiple cores */
-              0, /* the offset is how much extra we advance in the sequence for each call, can be 0 */
-              &state);
+//   /* we have to initialize the state */
+//   curand_init(seed,  the seed controls the sequence of random values that are produced 
+//               0, /* the sequence number is only important with multiple cores */
+//               0, /* the offset is how much extra we advance in the sequence for each call, can be 0 */
+//               &state);
 
-  /* curand works like rand - except that it takes a state as a parameter */
-  *result = curand(&state) % 1000;
-}
+//   /* curand works like rand - except that it takes a state as a parameter */
+//   *result = curand(&state) % 1000;
+// }
 
 template <typename Dtype>
 __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
@@ -44,8 +44,11 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
 {
   CUDA_1D_KERNEL_LOOP(index, nthreads) 
   {
+    curandState_t state;
+    curand_init(time(NULL), 0, 0, &state);
     int temp;
-    random<<<1, 1>>>(time(NULL), &x);
+    temp = curand(&state) % 1000;
+    
     // (n, ph, pw, c) is an element in the pooled output
     int n = index;
     int c = n % channels;
