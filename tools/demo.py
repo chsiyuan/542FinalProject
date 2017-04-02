@@ -4,6 +4,8 @@ from fast_rcnn.config import cfg
 from fast_rcnn.test import im_detect
 from fast_rcnn.nms_wrapper import nms
 from utils.timer import Timer
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os, sys, cv2
@@ -51,7 +53,7 @@ def vis_detections(im, class_name, dets,ax, thresh=0.5):
     plt.draw()
 
 
-def demo(sess, net, image_name):
+def demo(sess, net, image_name, force_cpu):
     """Detect object classes in an image using pre-computed object proposals."""
 
     # Load the demo image
@@ -80,8 +82,9 @@ def demo(sess, net, image_name):
         cls_scores = scores[:, cls_ind]
         dets = np.hstack((cls_boxes,
                           cls_scores[:, np.newaxis])).astype(np.float32)
-        keep = nms(dets, NMS_THRESH)
+        keep = nms(dets, NMS_THRESH, force_cpu)
         dets = dets[keep, :]
+	print ('After nms, {:d} object proposals').format(dets.shape[0])
         vis_detections(im, cls, dets, ax, thresh=CONF_THRESH)
 
 def parse_args():
@@ -105,6 +108,16 @@ if __name__ == '__main__':
 
     args = parse_args()
 
+    force_cpu = False
+    if args.cpu_mode == True:
+	print '\nUse cpu mode\n'
+	cfg.USE_GPU_NMS = False
+	force_cpu = True
+    else:
+	print '\nUse gpu mode\n'
+	cfg.USE_GPU_NMS = True
+	cfg.GPU_ID = args.gpu_id
+
     if args.model == ' ':
         raise IOError(('Error: Model not found.\n'))
         
@@ -125,14 +138,14 @@ if __name__ == '__main__':
     for i in xrange(2):
         _, _= im_detect(sess, net, im)
 
-    im_names = ['000456.jpg', '000542.jpg', '001150.jpg',
-                '001763.jpg', '004545.jpg']
+
+    im_names = ['001763.jpg']
 
 
     for im_name in im_names:
         print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
         print 'Demo for data/demo/{}'.format(im_name)
-        demo(sess, net, im_name)
+        demo(sess, net, im_name, force_cpu)
 
-    plt.show()
+    plt.savefig('demo_out.png')
 

@@ -13,6 +13,8 @@ import math
 from rpn_msr.generate import imdb_proposals_det
 import tensorflow as tf
 from fast_rcnn.bbox_transform import clip_boxes, bbox_transform_inv
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from tensorflow.python.client import timeline
 import time
