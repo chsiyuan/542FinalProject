@@ -139,7 +139,7 @@ bool ROIPoolForwardLaucher(
   ROIPoolForward<<<(output_size + kThreadsPerBlock - 1) / kThreadsPerBlock,
                        kThreadsPerBlock, 0, d.stream()>>>(
       output_size, bottom_data, spatial_scale, height, width, channels, pooled_height,
-      pooled_width, bottom_rois, top_data, argmax_data);
+      pooled_width, bottom_rois, top_data, argmax_data_x, argmax_data_y);
 
   err = cudaGetLastError();
   if(cudaSuccess != err)
