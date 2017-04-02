@@ -21,21 +21,6 @@ using std::abs;
 // namespace tensorflow {
 using namespace tensorflow;
 
-// __global__ void random(unsigned int seed, int* result) {
-//   /* CUDA's random number library uses curandState_t to keep track of the seed value
-//      we will store a random state for every thread  */
-//   curandState_t state;
-
-//   /* we have to initialize the state */
-//   curand_init(seed,  the seed controls the sequence of random values that are produced 
-//               0, /* the sequence number is only important with multiple cores */
-//               0, /* the offset is how much extra we advance in the sequence for each call, can be 0 */
-//               &state);
-
-//   /* curand works like rand - except that it takes a state as a parameter */
-//   *result = curand(&state) % 1000;
-// }
-
 template <typename Dtype>
 __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
     const Dtype spatial_scale, const int height, const int width, 
@@ -44,11 +29,6 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
 {
   CUDA_1D_KERNEL_LOOP(index, nthreads) 
   {
-    curandState_t state;
-    curand_init(time(NULL), 0, 0, &state);
-    int temp;
-    temp = curand(&state) % 1000;
-    
     // (n, ph, pw, c) is an element in the pooled output
     int n = index;
     int c = n % channels;
@@ -108,13 +88,16 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
     //     }
     //   }
     // }
+    curandState_t state;
+    curand_init(clock64(), 0, 0, &state);
+
     if(!is_empty){
       for (int i = 0; i < 4; ++i)
       {
         float randPoint[2];
-        float rh = (rand() % 1000) / 1000.0;
+        float rh = static_cast<float>((curand(&state) % 1000) / 1000.0);
         randPoint[0] = rh * (hstart - hend) + hstart;
-        float rw = (rand() % 1000) / 1000.0;
+        float rw = static_cast<float>((curand(&state) % 1000) / 1000.0);
         randPoint[1] = rw * (wstart - wend) + wstart;
         // Notes: Calculate the interpolation for the point
         int topleft[2] = {static_cast<int>(floor(randPoint[0])) , static_cast<int>(floor(randPoint[1]))};
