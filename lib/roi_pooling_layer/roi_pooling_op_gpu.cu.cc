@@ -64,10 +64,10 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
     //                                  * bin_size_w));
 
     // Add roi offsets and clip to input boundaries
-    hstart = min(max(hstart + roi_start_h, 0), height);
-    hend = min(max(hend + roi_start_h, 0), height);
-    wstart = min(max(wstart + roi_start_w, 0), width);
-    wend = min(max(wend + roi_start_w, 0), width);
+    hstart = min(max(hstart + roi_start_h, 0), (float) height);
+    hend = min(max(hend + roi_start_h, 0), (float) height);
+    wstart = min(max(wstart + roi_start_w, 0), (float) width);
+    wend = min(max(wend + roi_start_w, 0), (float) width);
     bool is_empty = (hend <= hstart) || (wend <= wstart);
 
     // Define an empty pooling region to be zero
@@ -224,10 +224,10 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
             float wend = static_cast<float>((pw + 1) * bin_size_w);
 
             // Add roi offsets and clip to input boundaries
-            hstart = std::min(std::max(hstart + roi_start_h, 0), height);
-            hend = std::min(std::max(hend + roi_start_h, 0), height);
-            wstart = std::min(std::max(wstart + roi_start_w, 0), width);
-            wend = std::min(std::max(wend + roi_start_w, 0), width);
+            hstart = min(max(hstart + roi_start_h, 0), (float) height);
+            hend = min(max(hend + roi_start_h, 0), (float) height);
+            wstart = min(max(wstart + roi_start_w, 0), (float) width);
+            wend = min(max(wend + roi_start_w, 0), (float) width);
 
             float coeff = (1 - abs(maxidx_x - h)/(hend - hstart)) * (1 - abs(maxidx_y - w)/(wend - wstart));
             gradient += offset_top_diff[(ph * pooled_width + pw) * channels + c] * coeff;

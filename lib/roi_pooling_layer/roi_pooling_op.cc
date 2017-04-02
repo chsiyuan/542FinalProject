@@ -182,10 +182,10 @@ class RoiPoolOp : public OpKernel {
         float wend = static_cast<float>((pw + 1) * bin_size_w);
 
         // Add roi offsets and clip to input boundaries
-        hstart = std::min(std::max(hstart + roi_start_h, 0), data_height);
-        hend = std::min(std::max(hend + roi_start_h, 0), data_height);
-        wstart = std::min(std::max(wstart + roi_start_w, 0), data_width);
-        wend = std::min(std::max(wend + roi_start_w, 0), data_width);
+        hstart = std::min(std::max(hstart + roi_start_h, 0), (float) data_height);
+        hend = std::min(std::max(hend + roi_start_h, 0), (float) data_height);
+        wstart = std::min(std::max(wstart + roi_start_w, 0), (float) data_width);
+        wend = std::min(std::max(wend + roi_start_w, 0), (float) data_width);
         bool is_empty = (hend <= hstart) || (wend <= wstart);
 
         // Define an empty pooling region to be zero
@@ -502,10 +502,10 @@ class RoiPoolGradOp : public OpKernel {
                 float wend = static_cast<float>((pw + 1) * bin_size_w);
 
                 // Add roi offsets and clip to input boundaries
-                hstart = std::min(std::max(hstart + roi_start_h, 0), data_height);
-                hend = std::min(std::max(hend + roi_start_h, 0), data_height);
-                wstart = std::min(std::max(wstart + roi_start_w, 0), data_width);
-                wend = std::min(std::max(wend + roi_start_w, 0), data_width);
+                hstart = std::min(std::max(hstart + roi_start_h, 0), (float) data_height);
+                hend = std::min(std::max(hend + roi_start_h, 0), (float) data_height);
+                wstart = std::min(std::max(wstart + roi_start_w, 0), (float) data_width);
+                wend = std::min(std::max(wend + roi_start_w, 0), (float) data_width);
 
                 float coeff = (1 - abs(maxidx_x - h)/(hend - hstart)) * (1 - abs(maxidx_y - w)/(wend - wstart));
                 gradient += offset_top_diff[(ph * pooled_width + pw) * num_channels + c] * coeff;
