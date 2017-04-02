@@ -14,6 +14,7 @@
 
 using std::max;
 using std::min;
+using std::abs;
 
 // namespace tensorflow {
 using namespace tensorflow;
@@ -64,10 +65,10 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
     //                                  * bin_size_w));
 
     // Add roi offsets and clip to input boundaries
-    hstart = min(max(hstart + roi_start_h, 0.0), (float) height);
-    hend = min(max(hend + roi_start_h, 0.0), (float) height);
-    wstart = min(max(wstart + roi_start_w, 0.0), (float) width);
-    wend = min(max(wend + roi_start_w, 0.0), (float) width);
+    hstart = min(max(hstart + roi_start_h, (float)0), (float) height);
+    hend = min(max(hend + roi_start_h, (float)0), (float) height);
+    wstart = min(max(wstart + roi_start_w, (float)0), (float) width);
+    wend = min(max(wend + roi_start_w, (float)0), (float) width);
     bool is_empty = (hend <= hstart) || (wend <= wstart);
 
     // Define an empty pooling region to be zero
@@ -94,16 +95,16 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
         float rw = (rand() % 1000) / 1000.0;
         randPoint[1] = rw * (wstart - wend) + wstart;
         // Notes: Calculate the interpolation for the point
-        int topleft[2] = {floor(randPoint[0]) , floor(randPoint[1])};
+        int topleft[2] = {static_cast<int>(floor(randPoint[0])) , static_cast<int>(floor(randPoint[1]))};
         int tl_index = (topleft[0] * width + topleft[1]) * channels + c;
 
-        int topright[2] = {floor(randPoint[0]) , ceil(randPoint[1])};
+        int topright[2] = {static_cast<int>(floor(randPoint[0])) , static_cast<int>(ceil(randPoint[1]))};
         int tr_index = (topright[0] * width + topright[1]) * channels + c;
 
-        int botleft[2] = {ceil(randPoint[0]) , floor(randPoint[1])};
+        int botleft[2] = {static_cast<int>(ceil(randPoint[0])) , static_cast<int>(floor(randPoint[1]))};
         int bl_index = (botleft[0] * width + botleft[1]) * channels + c;
 
-        int botright[2] = {ceil(randPoint[0]) , ceil(randPoint[1])};
+        int botright[2] = {static_cast<int>(ceil(randPoint[0])) , static_cast<int>(ceil(randPoint[1]))};
         int br_index = (botright[0] * width + botright[1]) * channels + c;
 
         float randValue = (1-rh) * (1-rw) * bottom_data[tl_index]
@@ -179,10 +180,10 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
         continue;
       }
 
-      int roi_start_w = floor(offset_bottom_rois[1] * spatial_scale);
-      int roi_start_h = floor(offset_bottom_rois[2] * spatial_scale);
-      int roi_end_w = ceil(offset_bottom_rois[3] * spatial_scale);
-      int roi_end_h = ceil(offset_bottom_rois[4] * spatial_scale);
+      int roi_start_w = static_cast<int>(floor(offset_bottom_rois[1] * spatial_scale));
+      int roi_start_h = static_cast<int>(floor(offset_bottom_rois[2] * spatial_scale));
+      int roi_end_w = static_cast<int>(ceil(offset_bottom_rois[3] * spatial_scale));
+      int roi_end_h = static_cast<int>(ceil(offset_bottom_rois[4] * spatial_scale));
 
       // Skip if ROI doesn't include (h, w)
       const bool in_roi = (w >= roi_start_w && w <= roi_end_w &&
@@ -224,10 +225,10 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
             float wend = static_cast<float>((pw + 1) * bin_size_w);
 
             // Add roi offsets and clip to input boundaries
-            hstart = min(max(hstart + roi_start_h, 0.0), (float) height);
-            hend = min(max(hend + roi_start_h, 0.0), (float) height);
-            wstart = min(max(wstart + roi_start_w, 0.0), (float) width);
-            wend = min(max(wend + roi_start_w, 0.0), (float) width);
+            hstart = min(max(hstart + roi_start_h, (float)0), (float) height);
+            hend = min(max(hend + roi_start_h, (float)0), (float) height);
+            wstart = min(max(wstart + roi_start_w, (float)0), (float) width);
+            wend = min(max(wend + roi_start_w, (float)0), (float) width);
 
             float coeff = (1 - abs(maxidx_x - h)/(hend - hstart)) * (1 - abs(maxidx_y - w)/(wend - wstart));
             gradient += offset_top_diff[(ph * pooled_width + pw) * channels + c] * coeff;
