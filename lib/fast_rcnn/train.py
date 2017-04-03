@@ -99,11 +99,22 @@ class SolverWrapper(object):
 
         return outside_mul
 
+    def _binary_mask_loss(self, mask_out, mask_gt, label):
+        mask_out_array = mask_out.eval()
+        num_roi = mask_out_array.shape[0]
+        height = mask_out_array.shape[1]
+        width = mask_out_array.shape[2]
+        mask_one_class = tf.constant(mask_out_array[np.array(range(num_roi)),:,:,label.eval()])
+        mask_one_class = tf.reshape(mask_one_class, [num_roi, height, width])
+        loss_mask = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=mask_one_class, labels=mask_gt))
+        return loss_mask
+
 
     def train_model(self, sess, max_iters):
         """Network training loop."""
 
-        data_layer = get_data_layer(self.roidb, self.imdb.num_classes)
+        num_classes = self.imdb.num_classes
+        data_layer = get_data_layer(self.roidb, num_classes)
 
         # RPN
         # classification loss
@@ -126,7 +137,11 @@ class SolverWrapper(object):
         # classification loss
         cls_score = self.net.get_output('cls_score')
         label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
-        cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
+        # cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
+        cls_score_array = cls_score.eval();
+        num_roi = cls_score_array.shape[0]
+        cls_score = tf.constant(cls_score_array[np.array(range(num_roi)),label.eval()])
+        cross_entropy = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_score, labels=label))
 
         # bounding box regression L1 loss
         bbox_pred = self.net.get_output('bbox_pred')
@@ -136,6 +151,11 @@ class SolverWrapper(object):
 
         smooth_l1 = self._modified_smooth_l1(1.0, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
         loss_box = tf.reduce_mean(tf.reduce_sum(smooth_l1, reduction_indices=[1]))
+
+        # mask loss
+        mask_out = self.net.get_output('mask_out')
+        loss_mask = self._binary_mask_loss(mask_out, mask_gt, label)
+
 
         # final loss
         loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
