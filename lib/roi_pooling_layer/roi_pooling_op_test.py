@@ -13,17 +13,27 @@ def weight_variable(shape):
 def conv2d(x, W):
   return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
-array = np.random.rand(32, 100, 100, 3)
+array = np.random.rand(32, 50, 50, 3)
+"""array = np.zeros((32, 50, 50, 3))
+for b in xrange(1,32):
+	for x in xrange(1,50):
+		for y in xrange(1,50):
+			for c in xrange(1,3):
+				array[b,x,y,c] = x+y"""
 data = tf.convert_to_tensor(array, dtype=tf.float32)
-rois = tf.convert_to_tensor([[0, 10, 10, 20, 20], [31, 30, 30, 40, 40]], dtype=tf.float32)
+rois_array = [[0, 10, 10, 20, 20], [31, 30, 30, 40, 40]]
+rois = tf.convert_to_tensor(rois_array, dtype=tf.float32)
 
-W = weight_variable([3, 3, 3, 1])
+W = weight_variable([3, 3, 3, 2])
 h = conv2d(data, W)
+proposal1 = h.eval()[:,10:20,10:20,:]
+proposal2 = h.eval()[:,30:40,30:40,:]
+print proposal1, proposal2
 
-[y, argmax] = roi_pooling_op.roi_pool(h, rois, 6, 6, 1.0/3)
+[y, argmax_x, argmax_y] = roi_pooling_op.roi_pool(h, rois, 6, 6, 1.0/3)
 pdb.set_trace()
-y_data = tf.convert_to_tensor(np.ones((2, 6, 6, 1)), dtype=tf.float32)
-print y_data, y, argmax
+y_data = tf.convert_to_tensor(np.ones((2, 6, 6, 2)), dtype=tf.float32)
+print y, argmax_x, argmax_y
 
 # Minimize the mean squared errors.
 loss = tf.reduce_mean(tf.square(y - y_data))

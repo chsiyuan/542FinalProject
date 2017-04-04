@@ -104,7 +104,7 @@ class SolverWrapper(object):
         num_roi = mask_out_array.shape[0]
         height = mask_out_array.shape[1]
         width = mask_out_array.shape[2]
-        mask_one_class = tf.constant(mask_out_array[np.array(range(num_roi)),:,:,label.eval()])
+        mask_one_class = tf.convert_to_tensor(mask_out_array[np.array(range(num_roi)),:,:,label.eval()], dtype=tf.float32)
         mask_one_class = tf.reshape(mask_one_class, [num_roi, height, width])
         loss_mask = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=mask_one_class, labels=mask_gt))
         return loss_mask
@@ -140,7 +140,7 @@ class SolverWrapper(object):
         # cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
         cls_score_array = cls_score.eval();
         num_roi = cls_score_array.shape[0]
-        cls_score = tf.constant(cls_score_array[np.array(range(num_roi)),label.eval()])
+        cls_score = tf.convert_to_tensor(cls_score_array[np.array(range(num_roi)),label.eval()], dtype=tf.float32)
         cross_entropy = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_score, labels=label))
 
         # bounding box regression L1 loss
