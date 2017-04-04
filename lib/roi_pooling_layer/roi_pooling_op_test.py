@@ -26,12 +26,12 @@ rois = tf.convert_to_tensor(rois_array, dtype=tf.float32)
 
 W = weight_variable([3, 3, 3, 2])
 h = conv2d(data, W)
-proposal1 = h.eval()[:,10:20,10:20,:]
-proposal2 = h.eval()[:,30:40,30:40,:]
+proposal1 = h[:,10:20,10:20,:]
+proposal2 = h[:,30:40,30:40,:]
 print proposal1, proposal2
 
 [y, argmax_x, argmax_y] = roi_pooling_op.roi_pool(h, rois, 6, 6, 1.0/3)
-pdb.set_trace()
+#pdb.set_trace()
 y_data = tf.convert_to_tensor(np.ones((2, 6, 6, 2)), dtype=tf.float32)
 print y, argmax_x, argmax_y
 
@@ -45,7 +45,7 @@ init = tf.initialize_all_variables()
 # Launch the graph.
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 sess.run(init)
-pdb.set_trace()
+#pdb.set_trace()
 for step in xrange(10):
     sess.run(train)
     print(step, sess.run(W))

@@ -18,7 +18,7 @@ def _roi_pool_shape(op):
   pooled_width = op.get_attr('pooled_width')
 
   output_shape = tf.TensorShape([num_rois, pooled_height, pooled_width, channels])
-  return [output_shape, output_shape]
+  return [output_shape, output_shape, output_shape]
 
 @ops.RegisterGradient("RoiPool")
 def _roi_pool_grad(op, grad, _):
