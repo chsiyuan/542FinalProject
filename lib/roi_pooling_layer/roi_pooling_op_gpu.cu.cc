@@ -126,8 +126,8 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
           maxidx_x = randPoint[0];
           maxidx_y = randPoint[1];
         }
-        std::cout << "rand value " << i << ": " << randValue << std::endl;
-        std::cout << "rand point " << i << ": " << randPoint[0] << " " << randPoint[1] << std::endl;
+        printf("i: %d, rand point: [%f,%f]\n", i, randPoint[0],randPoint[1]);
+        printf("i: %d, rand value: %f\n", i, randValue);
       }
     }
 
@@ -234,8 +234,8 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
           if(abs(maxidx_x - h) < 1 && abs(maxidx_y - w) < 1){
               float coeff = (1 - std::abs(maxidx_x - h)) * (1 - std::abs(maxidx_y - w));
               gradient += offset_top_diff[(ph * pooled_width + pw) * channels + c] * coeff;
-              std::cout<<"h: "<< h <<" w: "<<w<<" maxidx_x: "<<maxidx_x<<" maxidx_y:"<<maxidx_y<<std::endl;
-              std::cout<<" coeff: "<<coeff<<std::endl;
+              printf("h: %d, w: %d, maxidx_x: %f, maxidx_y: %f\n", h,w,maxidx_x,maxidx_y);
+              printf("coeff: %f\n", coeff);
           }
         }
       }
