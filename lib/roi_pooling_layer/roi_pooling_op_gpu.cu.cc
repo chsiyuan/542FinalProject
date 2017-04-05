@@ -210,15 +210,6 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
       const float* offset_argmax_data_x = argmax_data_x + offset;
       const float* offset_argmax_data_y = argmax_data_y + offset;
 
-      // Compute feasible set of pooled units that could have pooled
-      // this bottom unit
-
-      // Force malformed ROIs to be 1x1
-      // int roi_width = max(roi_end_w - roi_start_w + 1, 1);
-      // int roi_height = max(roi_end_h - roi_start_h + 1, 1);
-      float roi_width = roi_end_w - roi_start_w;
-      float roi_height = roi_end_h - roi_start_h;
-
       for (int ph = 0; ph < pooled_height; ++ph)
       {
         for (int pw = 0; pw < pooled_width; ++pw)
