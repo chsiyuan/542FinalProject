@@ -95,9 +95,9 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
       for (int i = 0; i < 4; ++i)
       {
         float randPoint[2];
-        float rh = (rand() % 1000) / 1000.0;
+        float rh = static_cast<float>((curand(&state)%1000)/1000.0);
         randPoint[0] = rh * (hend - hstart) + hstart;
-        float rw = (rand() % 1000) / 1000.0;
+        float rw = static_cast<float>((curand(&state)%1000)/1000.0);
         randPoint[1] = rw * (wend - wstart) + wstart;
 
         // Notes: Calculate the interpolation for the point
@@ -218,11 +218,6 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
       // int roi_height = max(roi_end_h - roi_start_h + 1, 1);
       float roi_width = roi_end_w - roi_start_w;
       float roi_height = roi_end_h - roi_start_h;
-
-      Dtype bin_size_h = static_cast<Dtype>(roi_height)
-                         / static_cast<Dtype>(pooled_height);
-      Dtype bin_size_w = static_cast<Dtype>(roi_width)
-                         / static_cast<Dtype>(pooled_width);
 
       for (int ph = 0; ph < pooled_height; ++ph)
       {

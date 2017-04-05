@@ -473,10 +473,6 @@ class RoiPoolGradOp : public OpKernel {
           // this bottom unit
           float roi_width = roi_end_w - roi_start_w;
           float roi_height = roi_end_h - roi_start_h;
-          const T bin_size_h = static_cast<T>(roi_height)
-                   / static_cast<T>(pooled_height);
-          const T bin_size_w = static_cast<T>(roi_width)
-                   / static_cast<T>(pooled_width);
 
           for (int ph = 0; ph < pooled_height; ++ph)
           {
