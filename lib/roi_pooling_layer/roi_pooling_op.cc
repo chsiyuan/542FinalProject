@@ -19,6 +19,7 @@ limitations under the License.
 #include <stdlib.h>
 #include <cfloat>
 #include <cmath>
+#include <iostream>
 
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/framework/op.h"
@@ -151,19 +152,14 @@ class RoiPoolOp : public OpKernel {
         const float* bottom_rois = bottom_rois_flat.data() + n * 5;
         // roi_batch_ind means the index of current roi.
         int roi_batch_ind = bottom_rois[0];
-        // int roi_start_w = round(bottom_rois[1] * spatial_scale);
-        // int roi_start_h = round(bottom_rois[2] * spatial_scale);
-        // int roi_end_w = round(bottom_rois[3] * spatial_scale);
-        // int roi_end_h = round(bottom_rois[4] * spatial_scale);
+
         float roi_start_w = bottom_rois[1] * spatial_scale;
         float roi_start_h = bottom_rois[2] * spatial_scale;
         float roi_end_w = bottom_rois[3] * spatial_scale;
         float roi_end_h = bottom_rois[4] * spatial_scale;
 
-        // Force malformed ROIs to be 1x1  
         // Notes: This step is not needed for roi align
-        //int roi_width = std::max(roi_end_w - roi_start_w + 1, 1);
-        //int roi_height = std::max(roi_end_h - roi_start_h + 1, 1);
+
         float roi_width = roi_end_w - roi_start_w;
         float roi_height = roi_end_h - roi_start_h;
         const T bin_size_h = static_cast<T>(roi_height)
@@ -172,10 +168,6 @@ class RoiPoolOp : public OpKernel {
                            / static_cast<T>(pooled_width);
 
         // Notes: here these are coordinates of every bin relative to every bbox
-        // int hstart = static_cast<int>(floor(ph * bin_size_h));
-        // int wstart = static_cast<int>(floor(pw * bin_size_w));
-        // int hend = static_cast<int>(ceil((ph + 1) * bin_size_h));
-        // int wend = static_cast<int>(ceil((pw + 1) * bin_size_w));
         float hstart = static_cast<float>(ph * bin_size_h);
         float wstart = static_cast<float>(pw * bin_size_w);
         float hend = static_cast<float>((ph + 1) * bin_size_h);
@@ -194,15 +186,6 @@ class RoiPoolOp : public OpKernel {
         float maxidx_x = -1.0;
         float maxidx_y = -1.0;
         const float* bottom_data = bottom_data_flat.data() + roi_batch_ind * num_channels * data_height * data_width;
-        // for (int h = hstart; h < hend; ++h) {
-        //   for (int w = wstart; w < wend; ++w) {
-        //     int bottom_index = (h * data_width + w) * num_channels + c;
-        //     if (bottom_data[bottom_index] > maxval) {
-        //       maxval = bottom_data[bottom_index];
-        //       maxidx = bottom_index;
-        //     }
-        //   }
-        // }
 
         // Notes: Get four random points in the bin
         if(!is_empty){
@@ -210,11 +193,12 @@ class RoiPoolOp : public OpKernel {
           {
             float randPoint[2];
             float rh = (rand() % 1000) / 1000.0;
-            randPoint[0] = rh * (hstart - hend) + hstart;
+            randPoint[0] = rh * (hend - hstart) + hstart;
             float rw = (rand() % 1000) / 1000.0;
-            randPoint[1] = rw * (wstart - wend) + wstart;
+            randPoint[1] = rw * (wend - wstart) + wstart;
+
             // Notes: Calculate the interpolation for the point
-            int topleft[2] = {static_cast<int>(floor(randPoint[0])), static_cast<int>((int)floor(randPoint[1]))};
+            int topleft[2] = {static_cast<int>(floor(randPoint[0])), static_cast<int>(floor(randPoint[1]))};
             int tl_index = (topleft[0] * data_width + topleft[1]) * num_channels + c;
 
             int topright[2] = {static_cast<int>(floor(randPoint[0])), static_cast<int>(ceil(randPoint[1]))};
@@ -226,6 +210,10 @@ class RoiPoolOp : public OpKernel {
             int botright[2] = {static_cast<int>(ceil(randPoint[0])), static_cast<int>(ceil(randPoint[1]))};
             int br_index = (botright[0] * data_width + botright[1]) * num_channels + c;
 
+            rh = randPoint[0]-topleft[0];
+            rw = randPoint[1]-topleft[1];
+            // std::cout<<"rh: "<<rh<<" rw: "<<rw<<std::endl;
+
             float randValue = (1-rh) * (1-rw) * bottom_data[tl_index]
                           + (1-rh) * rw * bottom_data[tr_index]
                           + rh * (1-rw) * bottom_data[bl_index]
@@ -235,6 +223,8 @@ class RoiPoolOp : public OpKernel {
               maxidx_x = randPoint[0];
               maxidx_y = randPoint[1];
             }
+            std::cout << "rand value " << i << ": " << randValue << std::endl;
+            std::cout << "rand point " << i << ": " << randPoint[0] << " " << randPoint[1] << std::endl;
           }
         }
         output(b) = maxval;
@@ -496,50 +486,14 @@ class RoiPoolGradOp : public OpKernel {
               float maxidx_y = offset_argmax_data_y[(ph * pooled_width + pw) * num_channels + c];
               // If maxdix_x = maxidx_y = -1, it will skip this [if] branch.
               if(std::abs(maxidx_x - h) < 1 && std::abs(maxidx_y - w) < 1){
-                float hstart = static_cast<float>(ph * bin_size_h);
-                float wstart = static_cast<float>(pw * bin_size_w);
-                float hend = static_cast<float>((ph + 1) * bin_size_h);
-                float wend = static_cast<float>((pw + 1) * bin_size_w);
 
-                // Add roi offsets and clip to input boundaries
-                hstart = std::min(std::max(hstart + roi_start_h, (float)0), (float) data_height);
-                hend = std::min(std::max(hend + roi_start_h, (float)0), (float) data_height);
-                wstart = std::min(std::max(wstart + roi_start_w, (float)0), (float) data_width);
-                wend = std::min(std::max(wend + roi_start_w, (float)0), (float) data_width);
-
-                float coeff = (1 - std::abs(maxidx_x - h)/(hend - hstart)) * (1 - std::abs(maxidx_y - w)/(wend - wstart));
+                float coeff = (1 - std::abs(maxidx_x - h)) * (1 - std::abs(maxidx_y - w));
                 gradient += offset_top_diff[(ph * pooled_width + pw) * num_channels + c] * coeff;
+                std::cout<<"h: "<< h <<" w: "<<w<<" maxidx_x: "<<maxidx_x<<" maxidx_y:"<<maxidx_y<<std::endl;
+                std::cout<<" coeff: "<<coeff<<std::endl;
               }
             }
           }
-
-          // Force malformed ROIs to be 1x1
-          // int roi_width = std::max(roi_end_w - roi_start_w + 1, 1);
-          // int roi_height = std::max(roi_end_h - roi_start_h + 1, 1);
-
-          // const T bin_size_h = static_cast<T>(roi_height)
-          //                    / static_cast<T>(pooled_height);
-          // const T bin_size_w = static_cast<T>(roi_width)
-          //                    / static_cast<T>(pooled_width);
-
-          // int phstart = floor(static_cast<int>(h - roi_start_h) / bin_size_h);
-          // int phend = ceil(static_cast<int>(h - roi_start_h + 1) / bin_size_h);
-          // int pwstart = floor(static_cast<int>(w - roi_start_w) / bin_size_w);
-          // int pwend = ceil(static_cast<int>(w - roi_start_w + 1) / bin_size_w);
-
-          // phstart = std::min(std::max(phstart, 0), pooled_height);
-          // phend = std::min(std::max(phend, 0), pooled_height);
-          // pwstart = std::min(std::max(pwstart, 0), pooled_width);
-          // pwend = std::min(std::max(pwend, 0), pooled_width);
-
-          // for (int ph = phstart; ph < phend; ++ph) {
-          //   for (int pw = pwstart; pw < pwend; ++pw) {
-          //     if (offset_argmax_data[(ph * pooled_width + pw) * num_channels + c] == (h * data_width + w) * num_channels + c)
-          //     {
-          //       gradient += offset_top_diff[(ph * pooled_width + pw) * num_channels + c];
-          //     }
-          //   }
-          // }
         }
         output(b) = gradient;
       }

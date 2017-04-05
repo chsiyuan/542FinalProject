@@ -95,22 +95,27 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
       for (int i = 0; i < 4; ++i)
       {
         float randPoint[2];
-        float rh = static_cast<float>((curand(&state) % 1000) / 1000.0);
-        randPoint[0] = rh * (hstart - hend) + hstart;
-        float rw = static_cast<float>((curand(&state) % 1000) / 1000.0);
-        randPoint[1] = rw * (wstart - wend) + wstart;
+        float rh = (rand() % 1000) / 1000.0;
+        randPoint[0] = rh * (hend - hstart) + hstart;
+        float rw = (rand() % 1000) / 1000.0;
+        randPoint[1] = rw * (wend - wstart) + wstart;
+
         // Notes: Calculate the interpolation for the point
-        int topleft[2] = {static_cast<int>(floor(randPoint[0])) , static_cast<int>(floor(randPoint[1]))};
+        int topleft[2] = {static_cast<int>(floor(randPoint[0])), static_cast<int>(floor(randPoint[1]))};
         int tl_index = (topleft[0] * width + topleft[1]) * channels + c;
 
-        int topright[2] = {static_cast<int>(floor(randPoint[0])) , static_cast<int>(ceil(randPoint[1]))};
+        int topright[2] = {static_cast<int>(floor(randPoint[0])), static_cast<int>(ceil(randPoint[1]))};
         int tr_index = (topright[0] * width + topright[1]) * channels + c;
 
-        int botleft[2] = {static_cast<int>(ceil(randPoint[0])) , static_cast<int>(floor(randPoint[1]))};
+        int botleft[2] = {static_cast<int>(ceil(randPoint[0])), static_cast<int>(floor(randPoint[1]))};
         int bl_index = (botleft[0] * width + botleft[1]) * channels + c;
 
-        int botright[2] = {static_cast<int>(ceil(randPoint[0])) , static_cast<int>(ceil(randPoint[1]))};
+        int botright[2] = {static_cast<int>(ceil(randPoint[0])), static_cast<int>(ceil(randPoint[1]))};
         int br_index = (botright[0] * width + botright[1]) * channels + c;
+
+        rh = randPoint[0]-topleft[0];
+        rw = randPoint[1]-topleft[1];
+        // std::cout<<"rh: "<<rh<<" rw: "<<rw<<std::endl;
 
         float randValue = (1-rh) * (1-rw) * bottom_data[tl_index]
                       + (1-rh) * rw * bottom_data[tr_index]
@@ -121,8 +126,11 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
           maxidx_x = randPoint[0];
           maxidx_y = randPoint[1];
         }
+        std::cout << "rand value " << i << ": " << randValue << std::endl;
+        std::cout << "rand point " << i << ": " << randPoint[0] << " " << randPoint[1] << std::endl;
       }
-    }    
+    }
+
     top_data[index] = maxval;
     if (argmax_data_x != nullptr && argmax_data_y != nullptr){
       argmax_data_x[index] = maxidx_x;
@@ -224,19 +232,10 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
           float maxidx_y = offset_argmax_data_y[(ph * pooled_width + pw) * channels + c];
           // If maxdix_x = maxidx_y = -1, it will skip this [if] branch.
           if(abs(maxidx_x - h) < 1 && abs(maxidx_y - w) < 1){
-            float hstart = static_cast<float>(ph * bin_size_h);
-            float wstart = static_cast<float>(pw * bin_size_w);
-            float hend = static_cast<float>((ph + 1) * bin_size_h);
-            float wend = static_cast<float>((pw + 1) * bin_size_w);
-
-            // Add roi offsets and clip to input boundaries
-            hstart = min(max(hstart + roi_start_h, (float)0), (float) height);
-            hend = min(max(hend + roi_start_h, (float)0), (float) height);
-            wstart = min(max(wstart + roi_start_w, (float)0), (float) width);
-            wend = min(max(wend + roi_start_w, (float)0), (float) width);
-
-            float coeff = (1 - abs(maxidx_x - h)/(hend - hstart)) * (1 - abs(maxidx_y - w)/(wend - wstart));
-            gradient += offset_top_diff[(ph * pooled_width + pw) * channels + c] * coeff;
+              float coeff = (1 - std::abs(maxidx_x - h)) * (1 - std::abs(maxidx_y - w));
+              gradient += offset_top_diff[(ph * pooled_width + pw) * channels + c] * coeff;
+              std::cout<<"h: "<< h <<" w: "<<w<<" maxidx_x: "<<maxidx_x<<" maxidx_y:"<<maxidx_y<<std::endl;
+              std::cout<<" coeff: "<<coeff<<std::endl;
           }
         }
       }
