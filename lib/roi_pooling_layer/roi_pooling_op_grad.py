@@ -21,7 +21,7 @@ def _roi_pool_shape(op):
   return [output_shape, output_shape, output_shape]
 
 @ops.RegisterGradient("RoiPool")
-def _roi_pool_grad(op, grad, _, __):
+def _roi_pool_grad(op, grad, _):
   """The gradients for `roi_pool`.
   Args:
     op: The `roi_pool` `Operation` that we are differentiating, which we can use

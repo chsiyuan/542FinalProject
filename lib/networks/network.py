@@ -169,7 +169,10 @@ class Network(object):
 
         with tf.variable_scope(name) as scope:
 
-            rpn_labels,rpn_bbox_targets,rpn_bbox_inside_weights,rpn_bbox_outside_weights = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], _feat_stride, anchor_scales],[tf.float32,tf.float32,tf.float32,tf.float32])
+            rpn_labels, \
+            rpn_bbox_targets, \
+            rpn_bbox_inside_weights, \
+            rpn_bbox_outside_weights = tf.py_func(anchor_target_layer_py,[input[0],input[1],input[2],input[3], _feat_stride, anchor_scales],[tf.float32,tf.float32,tf.float32,tf.float32])
 
             rpn_labels = tf.convert_to_tensor(tf.cast(rpn_labels,tf.int32), name = 'rpn_labels')
             rpn_bbox_targets = tf.convert_to_tensor(rpn_bbox_targets, name = 'rpn_bbox_targets')
@@ -272,17 +275,17 @@ class Network(object):
         return tf.nn.dropout(input, keep_prob, name=name)
 
     @layer
-    def upscore(self, input, ksize = 4, stride = 2, c_out, name)
+    def upscore(self, input, ksize = 2, stride = 2, c_out, name)
         strides = [1, stride, stride, 1]
         with tf.variable_scope(name) as scope:
             in_shape = input.get_shape().as_list()
-            c_in = in_shape[-1]  # number of input channels
+            c_in = in_shape[-1]  # number of input channels, 1024
 
             # calculate output shape
             h = in_shape[1] * 2
             w = in_shape[2] * 2
             # the number of channels of output should be the same with input?
-            out_shape = tf.stack([in_shape[0], h, w, c_out])
+            out_shape = tf.convert_to_tensor([in_shape[0], h, w, c_out])
 
             # get deconv kernel
             stddev = 0.02
@@ -291,4 +294,4 @@ class Network(object):
 
             # get variable
             kernel = self.make_var('up_kernel', kernel_size, init_kernel, trainable)
-            return tf.nn.conv2d_transpose(input, kernel, out_shape, strides=strides, padding='SAME')
+            return tf.nn.conv2d_transpose(input, kernel, out_shape, strides=strides, padding='SAME', data_format='NHWC')

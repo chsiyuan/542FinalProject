@@ -24,7 +24,7 @@ def parse_args():
     """
     Parse input arguments
     """
-    parser = argparse.ArgumentParser(description='Train a Fast R-CNN network')
+    parser = argparse.ArgumentParser(description='Train a Mask R-CNN network')
     parser.add_argument('--device', dest='device', help='device to use',
                         default='cpu', type=str)
     parser.add_argument('--device_id', dest='device_id', help='device id to use',
@@ -53,6 +53,9 @@ def parse_args():
     parser.add_argument('--set', dest='set_cfgs',
                         help='set config keys', default=None,
                         nargs=argparse.REMAINDER)
+    parser.add_argument('--stage', dest='train_stage',
+                        help='one of four training stages',
+                        default=1, type=int)
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -75,6 +78,11 @@ if __name__ == '__main__':
     print('Using config:')
     pprint.pprint(cfg)
 
+    if args.device is 'gpu'
+        cfg.USE_GPU_NMS = True
+        if args.device_id is not None:
+            cfg.GPU_ID = device_id
+
     if not args.randomize:
         # fix the random seeds (numpy and caffe) for reproducibility
         np.random.seed(cfg.RNG_SEED)
@@ -89,7 +97,8 @@ if __name__ == '__main__':
     #**************************************
     roidb = get_training_roidb(imdb)
 
-    output_dir = get_output_dir(imdb, None)
+    # output_dir = get_output_dir(imdb, None)
+    output_dir = "../results/stage" + str(train_stage)
     print 'Output will be saved to `{:s}`'.format(output_dir)
 
     device_name = '/{}:{:d}'.format(args.device,args.device_id)

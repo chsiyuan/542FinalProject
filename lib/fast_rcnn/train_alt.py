@@ -125,55 +125,63 @@ class SolverWrapper(object):
         #
         data_layer = get_data_layer(self.roidb, num_classes)
 
-        # RPN
-        # classification loss
-        rpn_cls_score = tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2])
-        rpn_label = tf.reshape(self.net.get_output('rpn-data')[0],[-1])
-        rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label,-1))),[-1,2])
-        rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-1))),[-1])
-        rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
+        if cfg.TRAIN.STAGE == 1 or cfg.TRAIN.STAGE == 3:
+            step_size = 60000
 
-        # bounding box regression L1 loss
-        rpn_bbox_pred = self.net.get_output('rpn_bbox_pred')
-        rpn_bbox_targets = tf.transpose(self.net.get_output('rpn-data')[1],[0,2,3,1])
-        rpn_bbox_inside_weights = tf.transpose(self.net.get_output('rpn-data')[2],[0,2,3,1])
-        rpn_bbox_outside_weights = tf.transpose(self.net.get_output('rpn-data')[3],[0,2,3,1])
+            # RPN
+            # classification loss
+            rpn_cls_score = tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2])
+            rpn_label = tf.reshape(self.net.get_output('rpn-data')[0],[-1])
+            rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label,-1))),[-1,2])
+            rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-1))),[-1])
+            rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
 
-        rpn_smooth_l1 = self._modified_smooth_l1(3.0, rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights)
-        rpn_loss_box = tf.reduce_mean(tf.reduce_sum(rpn_smooth_l1, reduction_indices=[1, 2, 3]))
+            # bounding box regression L1 loss
+            rpn_bbox_pred = self.net.get_output('rpn_bbox_pred')
+            rpn_bbox_targets = tf.transpose(self.net.get_output('rpn-data')[1],[0,2,3,1])
+            rpn_bbox_inside_weights = tf.transpose(self.net.get_output('rpn-data')[2],[0,2,3,1])
+            rpn_bbox_outside_weights = tf.transpose(self.net.get_output('rpn-data')[3],[0,2,3,1])
 
-        # R-CNN
-        # classification loss
-        cls_score = self.net.get_output('cls_score')
-        label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
-        # cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
-        num_roi = cls_score.get_shape().as_list()[0]
-        cls_match_score = tf.convert_to_tensor(np.zeros(num_roi))
-        for i in range(num_roi):
-            cls_match_score[i] = cls_score[i][label[i]]
-        cross_entropy = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_match_score, labels=label))
+            rpn_smooth_l1 = self._modified_smooth_l1(3.0, rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights)
+            rpn_loss_box = tf.reduce_mean(tf.reduce_sum(rpn_smooth_l1, reduction_indices=[1, 2, 3]))
 
-        # bounding box regression L1 loss
-        bbox_pred = self.net.get_output('bbox_pred')
-        bbox_targets = self.net.get_output('roi-data')[2]
-        bbox_inside_weights = self.net.get_output('roi-data')[3]
-        bbox_outside_weights = self.net.get_output('roi-data')[4]
+            # final loss
+            loss = rpn_cross_entropy + rpn_loss_box
+        else:
+            step_size = 30000
 
-        smooth_l1 = self._modified_smooth_l1(1.0, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
-        loss_box = tf.reduce_mean(tf.reduce_sum(smooth_l1, reduction_indices=[1]))
+            # R-CNN
+            # classification loss
+            cls_score = self.net.get_output('cls_score')
+            label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
+            # cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
+            num_roi = cls_score.get_shape().as_list()[0]
+            cls_match_score = tf.convert_to_tensor(np.zeros(num_roi))
+            for i in range(num_roi):
+                cls_match_score[i] = cls_score[i][label[i]]
+            cross_entropy = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_match_score, labels=label))
 
-        # mask loss
-        mask_out = self.net.get_output('mask_out')
-        mask_gt = self.net.get_output('roi-data')[5]
-        loss_mask = self._binary_mask_loss(mask_out, mask_gt, label)
+            # bounding box regression L1 loss
+            bbox_pred = self.net.get_output('bbox_pred')
+            bbox_targets = self.net.get_output('roi-data')[2]
+            bbox_inside_weights = self.net.get_output('roi-data')[3]
+            bbox_outside_weights = self.net.get_output('roi-data')[4]
 
-        # final loss
-        loss = rpn_cross_entropy + rpn_loss_box + cross_entropy + loss_box + loss_mask
+            smooth_l1 = self._modified_smooth_l1(1.0, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
+            loss_box = tf.reduce_mean(tf.reduce_sum(smooth_l1, reduction_indices=[1]))
+
+            # mask loss
+            mask_out = self.net.get_output('mask_out')
+            mask_gt = self.net.get_output('roi-data')[5]
+            loss_mask = self._binary_mask_loss(mask_out, mask_gt, label)
+
+            # final loss
+            loss = cross_entropy + loss_box + loss_mask
 
         # optimizer and learning rate
         global_step = tf.Variable(0, trainable=False)
         lr = tf.train.exponential_decay(cfg.TRAIN.LEARNING_RATE, global_step,
-                                        cfg.TRAIN.STEPSIZE, cfg.TRAIN.GAMMA, staircase=True)
+                                        step_size, cfg.TRAIN.GAMMA, staircase=True)
         momentum = cfg.TRAIN.MOMENTUM
         train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss, global_step=global_step)
 
@@ -202,12 +210,16 @@ class SolverWrapper(object):
 
             timer.tic()
 
-            rpn_loss_cls_value, rpn_loss_box_value, \
-            loss_cls_value, loss_box_value, loss_mask_value, _ \
-            = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, loss_mask, train_op],
-                        feed_dict=feed_dict,
-                        options=run_options,
-                        run_metadata=run_metadata)
+            if cfg.TRAIN.STAGE == 1 or cfg.TRAIN.STAGE == 3:
+                rpn_loss_cls_value, rpn_loss_box_value, _ = sess.run([rpn_cross_entropy, rpn_loss_box, train_op],
+                                                                    feed_dict=feed_dict,
+                                                                    options=run_options,
+                                                                    run_metadata=run_metadata)
+            else:
+                loss_cls_value, loss_box_value, loss_mask_value, _ = sess.run([cross_entropy, loss_box, loss_mask, train_op],
+                                                                    feed_dict=feed_dict,
+                                                                    options=run_options,
+                                                                    run_metadata=run_metadata)
 
             timer.toc()
 

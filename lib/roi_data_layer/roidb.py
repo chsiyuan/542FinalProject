@@ -22,7 +22,13 @@ def prepare_roidb(imdb):
     """
     sizes = [PIL.Image.open(imdb.image_path_at(i)).size
              for i in xrange(imdb.num_images)]
+    #******************************
+    # load annotation from dataset
+    #******************************
     roidb = imdb.roidb
+    #******************************
+    # load original dataset
+    #******************************   
     for i in xrange(len(imdb.image_index)):
         roidb[i]['image'] = imdb.image_path_at(i)
         roidb[i]['width'] = sizes[i][0]
@@ -91,6 +97,7 @@ def add_bbox_regression_targets(roidb):
     print stds[1:, :].mean(axis=0) # ignore bg class
 
     # Normalize targets
+    # default = true
     if cfg.TRAIN.BBOX_NORMALIZE_TARGETS:
         print "Normalizing targets"
         for im_i in xrange(num_images):

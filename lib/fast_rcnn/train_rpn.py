@@ -5,7 +5,8 @@
 # Written by Ross Girshick
 # --------------------------------------------------------
 
-"""Train a Fast R-CNN network."""
+"""Train Stage 1"""
+"""train RPN from VGG net trained on ImageNet"""
 
 from fast_rcnn.config import cfg
 import gt_data_layer.roidb as gdl_roidb
@@ -106,13 +107,13 @@ class SolverWrapper(object):
         return outside_mul
 
     def _binary_mask_loss(self, mask_out, mask_gt, label):
-        num_roi = mask_out.get_shape().as_list()[0]
-        h = mask_out.get_shape().as_list()[1]
-        w = mask_out.get_shape().as_list()[2]
-        mask_match = tf.convert_to_tensor(np.zeros((num_roi, h, w)))
-        for i in range(num_roi):
-            mask_match[i,:,:] = mask_out[i,:,:,label[i]]
-        loss_mask = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=mask_match, labels=mask_gt))
+        mask_out_array = mask_out.eval()
+        num_roi = mask_out_array.shape[0]
+        height = mask_out_array.shape[1]
+        width = mask_out_array.shape[2]
+        mask_one_class = tf.convert_to_tensor(mask_out_array[np.array(range(num_roi)),:,:,label.eval()], dtype=tf.float32)
+        mask_one_class = tf.reshape(mask_one_class, [num_roi, height, width])
+        loss_mask = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=mask_one_class, labels=mask_gt))
         return loss_mask
 
 
@@ -141,17 +142,16 @@ class SolverWrapper(object):
 
         rpn_smooth_l1 = self._modified_smooth_l1(3.0, rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights)
         rpn_loss_box = tf.reduce_mean(tf.reduce_sum(rpn_smooth_l1, reduction_indices=[1, 2, 3]))
-
+ 
         # R-CNN
         # classification loss
         cls_score = self.net.get_output('cls_score')
         label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
         # cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
-        num_roi = cls_score.get_shape().as_list()[0]
-        cls_match_score = tf.convert_to_tensor(np.zeros(num_roi))
-        for i in range(num_roi):
-            cls_match_score[i] = cls_score[i][label[i]]
-        cross_entropy = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_match_score, labels=label))
+        cls_score_array = cls_score.eval();
+        num_roi = cls_score_array.shape[0]
+        cls_score = tf.convert_to_tensor(cls_score_array[np.array(range(num_roi)),label.eval()], dtype=tf.float32)
+        cross_entropy = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_score, labels=label))
 
         # bounding box regression L1 loss
         bbox_pred = self.net.get_output('bbox_pred')
@@ -164,16 +164,16 @@ class SolverWrapper(object):
 
         # mask loss
         mask_out = self.net.get_output('mask_out')
-        mask_gt = self.net.get_output('roi-data')[5]
         loss_mask = self._binary_mask_loss(mask_out, mask_gt, label)
 
+
         # final loss
-        loss = rpn_cross_entropy + rpn_loss_box + cross_entropy + loss_box + loss_mask
+        loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
 
         # optimizer and learning rate
         global_step = tf.Variable(0, trainable=False)
         lr = tf.train.exponential_decay(cfg.TRAIN.LEARNING_RATE, global_step,
-                                        cfg.TRAIN.STEPSIZE, cfg.TRAIN.GAMMA, staircase=True)
+                                        cfg.TRAIN.STEPSIZE, 0.1, staircase=True)
         momentum = cfg.TRAIN.MOMENTUM
         train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss, global_step=global_step)
 
@@ -202,12 +202,10 @@ class SolverWrapper(object):
 
             timer.tic()
 
-            rpn_loss_cls_value, rpn_loss_box_value, \
-            loss_cls_value, loss_box_value, loss_mask_value, _ \
-            = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, loss_mask, train_op],
-                        feed_dict=feed_dict,
-                        options=run_options,
-                        run_metadata=run_metadata)
+            rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
+                                                                                                feed_dict=feed_dict,
+                                                                                                options=run_options,
+                                                                                                run_metadata=run_metadata)
 
             timer.toc()
 
@@ -218,13 +216,8 @@ class SolverWrapper(object):
                 trace_file.close()
 
             if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
-                if cfg.TRAIN.STAGE == 1 or cfg.TRAIN.STAGE == 3:
-                    print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, lr: %f'%\
-                    (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value, rpn_loss_cls_value, rpn_loss_box_value, lr.eval())
-                else:
-                    print 'iter: %d / %d, total loss: %.4f, loss_cls: %.4f, loss_box: %.4f, loss_mask: %.4f, lr: %f'%\
-                    (iter+1, max_iters, loss_cls_value + loss_box_value + loss_mask_value, loss_cls_value, loss_box_value, loss_mask_value, lr.eval())
-
+                print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
+                        (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value ,rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, lr.eval())
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
             if (iter+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
@@ -257,7 +250,7 @@ def get_training_roidb(imdb):
 
 def get_data_layer(roidb, num_classes):
     """return a data layer."""
-    # HAS_RPN = True when training
+    # HAS_RPN = False when training
     if cfg.TRAIN.HAS_RPN:
         if cfg.IS_MULTISCALE:
             layer = GtDataLayer(roidb)

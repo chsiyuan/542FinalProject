@@ -8,7 +8,7 @@ n_classes = 21
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32]
 
-class VGGnet_train(Network):
+class VGGnet_train_rpn(Network):
     def __init__(self, trainable=True):
         self.inputs = []
         self.data = tf.placeholder(tf.float32, shape=[None, None, None, 4])
@@ -60,39 +60,3 @@ class VGGnet_train(Network):
 
         (self.feed('rpn_conv/3x3')
              .conv(1,1,len(anchor_scales)*3*4, 1, 1, padding='VALID', relu = False, name='rpn_bbox_pred'))
-
-        #========= RoI Proposal ============
-        (self.feed('rpn_cls_score')   
-             .reshape_layer(2,name = 'rpn_cls_score_reshape')  # output shape: 1*(9H)*W*2
-             .softmax(name='rpn_cls_prob'))   # keep the shape
-
-        (self.feed('rpn_cls_prob')
-             .reshape_layer(len(anchor_scales)*3*2,name = 'rpn_cls_prob_reshape')) # output shape: 1*H*W*18
-
-        (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info')
-             .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
-
-        (self.feed('rpn_rois','gt_boxes')
-             .proposal_target_layer(n_classes,name = 'roi-data'))
-
-
-        #========= RCNN ============
-        (self.feed('conv5_3', 'roi-data')
-             .roi_pool(7, 7, 1.0/16, name='pool_5')
-             .fc(4096, name='fc6')
-             .dropout(0.5, name='drop6')
-             .fc(4096, name='fc7')
-             .dropout(0.5, name='drop7')
-             .fc(n_classes, relu=False, name='cls_score')
-             .softmax(name='cls_prob'))
-
-        (self.feed('drop7')
-             .fc(n_classes*4, relu=False, name='bbox_pred'))
-
-        # New branch for segmentation mask
-        (self.feed('pool_5')
-             .conv(3, 3, 1024, 1, 1, name='conv6_1')
-             .conv(3, 3, 1024, 1, 1, name='conv6_2')
-             .conv(3, 3, 1024, 1, 1, name='conv6_3')
-             .upscore(2, 2, 256, name='up_1')
-             .conv(1, 1, n_classes, 1, 1, name='mask_out'))
