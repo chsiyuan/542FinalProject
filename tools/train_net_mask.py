@@ -17,7 +17,7 @@ from networks.factory import get_network
 import argparse
 import pprint
 import numpy as np
-import sys
+import sys,os
 import pdb
 
 def parse_args():
@@ -53,9 +53,6 @@ def parse_args():
     parser.add_argument('--set', dest='set_cfgs',
                         help='set config keys', default=None,
                         nargs=argparse.REMAINDER)
-    parser.add_argument('--stage', dest='train_stage',
-                        help='one of four training stages',
-                        default=1, type=int)
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -98,7 +95,9 @@ if __name__ == '__main__':
     roidb = get_training_roidb(imdb)
 
     # output_dir = get_output_dir(imdb, None)
-    output_dir = "../results/stage" + str(train_stage)
+    output_dir = "../results"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     print 'Output will be saved to `{:s}`'.format(output_dir)
 
     device_name = '/{}:{:d}'.format(args.device,args.device_id)

@@ -188,11 +188,12 @@ class SolverWrapper(object):
         timer = Timer()
         for iter in range(max_iters):
             # get one batch
+            # bgr+deformed mask, shape[h,w,4]
             blobs = data_layer.forward()
 
             # Make one SGD update
             feed_dict={self.net.data: blobs['data'], self.net.im_info: blobs['im_info'], self.net.keep_prob: 0.5, \
-                           self.net.gt_boxes: blobs['gt_boxes']}
+                           self.net.gt_boxes: blobs['gt_boxes'], self.net.gt_masks: blobs['gt_masks']}
 
             run_options = None
             run_metadata = None
@@ -242,7 +243,7 @@ def get_training_roidb(imdb):
         print 'done'
 
     print 'Preparing training data...'
-    # HAS_RPN = False when training
+    # HAS_RPN = True when training
     if cfg.TRAIN.HAS_RPN:
         if cfg.IS_MULTISCALE:
             gdl_roidb.prepare_roidb(imdb)

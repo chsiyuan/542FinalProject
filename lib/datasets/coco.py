@@ -16,6 +16,7 @@ import scipy.io as sio
 import cPickle
 import json
 import uuid
+import PIL
 # COCO API
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
@@ -56,14 +57,15 @@ class coco(imdb):
         self._image_set = image_set
         self._data_path = osp.join(cfg.DATA_DIR, 'coco')
         # load COCO API, classes, class <-> id mappings
-        self._COCO = COCO(self._get_ann_file())
+        self._COCO = COCO(self._get_ann_file())  # a json file
         cats = self._COCO.loadCats(self._COCO.getCatIds())
         self._classes = tuple(['__background__'] + [c['name'] for c in cats])
-        self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
-        self._class_to_coco_cat_id = dict(zip([c['name'] for c in cats],
+        self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))  # e.g., 0 (bg),1,2,3...
+        self._class_to_coco_cat_id = dict(zip([c['name'] for c in cats],   # the index in the coco original jason file
                                               self._COCO.getCatIds()))
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
+        self._roidb_handler = self.gt_roidb
         self.set_proposal_method('selective_search')
         self.competition_mode(False)
 
@@ -100,22 +102,27 @@ class coco(imdb):
         widths = [ann['width'] for ann in anns]
         return widths
 
-    def image_path_at(self, i):
+    def image_path_at(self, i, ismask = False):
         """
         Return the absolute path to image i in the image sequence.
         """
-        return self.image_path_from_index(self._image_index[i])
+        return self.image_path_from_index(self._image_index[i], ismask = ismask)
 
-    def image_path_from_index(self, index):
+    def image_path_from_index(self, index, ismask = False):
         """
         Construct an image path from the image's "index" identifier.
         """
-        # Example image path for index=119993:
-        #   images/train2014/COCO_train2014_000000119993.jpg
-        file_name = ('COCO_' + self._data_name + '_' +
-                     str(index).zfill(12) + '.jpg')
-        image_path = osp.join(self._data_path, 'images',
-                              self._data_name, file_name)
+        if ismask:
+            file_name = self._COCO.loadImgs(index)[0]['deformed_mask_name']
+            image_path = osp.join(self._data_path, 'images',
+                                  self._data_name, 'deformed_mask', file_name)
+        else:
+            # Example image path for index=119993:
+            #   images/train2014/COCO_train2014_000000119993.jpg
+            file_name = ('COCO_' + self._data_name + '_' +
+                         str(index).zfill(12) + '.jpg')
+            image_path = osp.join(self._data_path, 'images',
+                                  self._data_name, file_name)
         assert osp.exists(image_path), \
                 'Path does not exist: {}'.format(image_path)
         return image_path
@@ -254,6 +261,7 @@ class coco(imdb):
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
         seg_areas = np.zeros((num_objs), dtype=np.float32)
+        masks = np.zeros((num_objs, height, width), dtype=np.uint16)
 
         # Lookup table to map from COCO category ids to our internal class
         # indices
@@ -273,13 +281,24 @@ class coco(imdb):
             else:
                 overlaps[ix, cls] = 1.0
 
+            #*************************************
+            #   read mask_name for every instance
+            #*************************************
+            # path e.g., /data/coco/gt_mask/groundt_train_000000000009.png
+            mask_path = osp.join(self._data_path, 'gt_mask', obj['mask_name'])
+            mask_flat = np.asarray(list(PIL.Image.open(mask_path).getdata()))
+            mask = mask_flat.reshape((height, width))
+            mask[np.where(mask != obj['category_id'])] = 0
+            masks[ix,:,:] = mask
+
         ds_utils.validate_boxes(boxes, width=width, height=height)
         overlaps = scipy.sparse.csr_matrix(overlaps)
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
                 'gt_overlaps' : overlaps,
                 'flipped' : False,
-                'seg_areas' : seg_areas}
+                'seg_areas' : seg_areas,
+                'masks' : masks}
 
     def _get_box_file(self, index):
         # first 14 chars / first 22 chars / all chars + .mat

@@ -15,7 +15,7 @@ import pdb
 
 DEBUG = False
 
-def proposal_target_layer(rpn_rois, gt_boxes,_num_classes):
+def proposal_target_layer(rpn_rois, gt_boxes,gt_masks,_num_classes):
     """
     Assign object detection proposals to ground-truth targets. Produces proposal
     classification labels and bounding-box regression targets.

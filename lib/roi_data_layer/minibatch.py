@@ -42,6 +42,17 @@ def get_minibatch(roidb, num_classes):
         blobs['im_info'] = np.array(
             [[im_blob.shape[1], im_blob.shape[2], im_scales[0]]],
             dtype=np.float32)
+        #********************************
+        # Add groundtruth masks to blob
+        #********************************
+        gt_masks = np.empty((len(gt_inds), im_blob.shape[1], im_blob.shape[2]), dtype=np.uint16)
+        gt_masks_org = roidb[0]['boxes'][gt_inds, :, :]
+        for i in range(len(gt_inds)):
+            gt_masks[i, :, :] = cv2.resize(gt_masks_org[i, :, :], None, None, fx=im_scales[0], fy=im_scales[0],
+                              interpolation=cv2.INTER_LINEAR)
+        blobs['gt_masks'] = gt_masks
+
+
     else: # not using RPN
         # Now, build the region of interest and label blobs
         rois_blob = np.zeros((0, 5), dtype=np.float32)
@@ -84,10 +95,17 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     """Generate a random sample of RoIs comprising foreground and background
     examples.
     """
+    #***************************
+    # Add gt masks
+    # Crop them to rois
+    # Resize to 14*14
+    #***************************
+    
     # label = class RoI has max overlap with
     labels = roidb['max_classes']
     overlaps = roidb['max_overlaps']
     rois = roidb['boxes']
+    masks = roidb['masks']
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
     fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
@@ -134,7 +152,14 @@ def _get_image_blob(roidb, scale_inds):
     processed_ims = []
     im_scales = []
     for i in xrange(num_images):
-        im = cv2.imread(roidb[i]['image'])
+        im_bgr = cv2.imread(roidb[i]['image'])
+        #******************************
+        #   Add deformed mask to input
+        #******************************
+        deformed_mask = cv2.imread(roidb[i]['deformed_mask'])
+        im = np.zeros((im_bgr.shape[0], im_bgr.shape[1], 4))
+        im[:,:,0:3] = im_bgr
+        im[:,:,3] = deformed_mask
         if roidb[i]['flipped']:
             im = im[:, ::-1, :]
         target_size = cfg.TRAIN.SCALES[scale_inds[i]]
