@@ -95,17 +95,10 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     """Generate a random sample of RoIs comprising foreground and background
     examples.
     """
-    #***************************
-    # Add gt masks
-    # Crop them to rois
-    # Resize to 14*14
-    #***************************
-    
     # label = class RoI has max overlap with
     labels = roidb['max_classes']
     overlaps = roidb['max_overlaps']
     rois = roidb['boxes']
-    masks = roidb['masks']
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
     fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]

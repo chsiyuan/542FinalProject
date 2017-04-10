@@ -12,10 +12,11 @@ from fast_rcnn.config import cfg
 from fast_rcnn.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 import pdb
+import cv2
 
 DEBUG = False
 
-def proposal_target_layer(rpn_rois, gt_boxes,gt_masks,_num_classes):
+def proposal_target_layer(rpn_rois, gt_boxes, gt_masks,_num_classes):
     """
     Assign object detection proposals to ground-truth targets. Produces proposal
     classification labels and bounding-box regression targets.
@@ -28,9 +29,10 @@ def proposal_target_layer(rpn_rois, gt_boxes,gt_masks,_num_classes):
     # and other times after box coordinates -- normalize to one format
 
     # Include ground-truth boxes in the set of candidate rois
+    # gt_boxes: [x1,y1,x2,y2,cls], rpn_rois:[cls,x1,y1,x2,y2] 
     zeros = np.zeros((gt_boxes.shape[0], 1), dtype=gt_boxes.dtype)
     all_rois = np.vstack(
-        (all_rois, np.hstack((zeros, gt_boxes[:, :-1])))
+        (all_rois, np.hstack((zeros, gt_boxes[:, :-1])))  
     )
 
     # Sanity check: single batch only
@@ -43,9 +45,12 @@ def proposal_target_layer(rpn_rois, gt_boxes,gt_masks,_num_classes):
 
     # Sample rois with classification labels and bounding box regression
     # targets
-    labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
-        all_rois, gt_boxes, fg_rois_per_image,
-        rois_per_image, _num_classes)
+    #*************************
+    #  Add gt_masks as input
+    #*************************
+    labels, rois, bbox_targets, bbox_inside_weights, mask_gt = _sample_rois(
+                            all_rois, gt_boxes, gt_masks, fg_rois_per_image,
+                            rois_per_image, _num_classes)
 
     if DEBUG:
         print 'num fg: {}'.format((labels > 0).sum())
@@ -64,7 +69,7 @@ def proposal_target_layer(rpn_rois, gt_boxes,gt_masks,_num_classes):
 
     bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
 
-    return rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights
+    return rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights,mask_gt
 
 def _get_bbox_regression_labels(bbox_target_data, num_classes):
     """Bounding-box regression targets (bbox_target_data) are stored in a
@@ -106,7 +111,7 @@ def _compute_targets(ex_rois, gt_rois, labels):
     return np.hstack(
             (labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
 
-def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_classes):
+def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image, num_classes):
     """Generate a random sample of RoIs comprising foreground and background
     examples.
     """
@@ -129,7 +134,7 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
 
     # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
     bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) &
-                       (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
+                       (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]  # use [0] because max_overlaps is a column vector
     # Compute number of background RoIs to take from this image (guarding
     # against there being fewer than desired)
     bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
@@ -152,4 +157,19 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     bbox_targets, bbox_inside_weights = \
         _get_bbox_regression_labels(bbox_target_data, num_classes)
 
-    return labels, rois, bbox_targets, bbox_inside_weights
+    #*********************
+    # sample gt_masks
+    # clip to roi region
+    # resize to 14*14
+    #*********************
+    mask_gt_keep = gt_masks[gt_assignment[keep_ins], :, :]
+    scale = cfg.TRAIN.ROI_OUTPUT_SIZE*2
+    mask_gt = np.zeros((len(keep_ins), scale, scale))
+    for i in range(len(keep_ins)):
+        roi = rois[i,1:5]
+        mask_gt_clip = mask_gt_keep[round(roi[0]):round[roi[2]], round(roi[1]):round(roi[3])]
+        fx = scale/mask_gt_clip.shape[0]
+        fy = scale/mask_gt_clip.shape[1]
+        mask_gt[i,:,:] = cv2.resize(mask_gt_clip, None, fx=fx, fy=fy)
+
+    return labels, rois, bbox_targets, bbox_inside_weights, mask_gt

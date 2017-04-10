@@ -110,9 +110,15 @@ class SolverWrapper(object):
         h = mask_out.get_shape().as_list()[1]
         w = mask_out.get_shape().as_list()[2]
         mask_match = tf.convert_to_tensor(np.zeros((num_roi, h, w)))
+        mask_weights = tf.convert_to_tensor(np.zeros((num_roi, h, w)))
         for i in range(num_roi):
-            mask_match[i,:,:] = mask_out[i,:,:,label[i]]
-        loss_mask = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=mask_match, labels=mask_gt))
+            if label[i] > 0:
+                mask_weights[i,:,:] = tf.convert_to_tensor(np.ones((h, w)))
+                mask_match[i,:,:] = mask_out[i,:,:,label[i]-1]
+            else:
+                mask_match[i,:,:] = mask_out[i,:,:,0]
+        loss_mask = tf.nn.sigmoid_cross_entropy_with_logits(logits=mask_match, labels=mask_gt)
+        loss_mask = tf.nn.reduce_mean(tf.multiply(loss_mask, mask_weights))
         return loss_mask
 
 

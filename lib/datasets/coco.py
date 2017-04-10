@@ -284,8 +284,8 @@ class coco(imdb):
             #*************************************
             #   read mask_name for every instance
             #*************************************
-            # path e.g., /data/coco/gt_mask/groundt_train_000000000009.png
-            mask_path = osp.join(self._data_path, 'gt_mask', obj['mask_name'])
+            # path e.g., /data/coco/gt_mask/train2014/groundt_train_000000000009.png
+            mask_path = osp.join(self._data_path, 'gt_mask', self._data_name, obj['mask_name'])
             mask_flat = np.asarray(list(PIL.Image.open(mask_path).getdata()))
             mask = mask_flat.reshape((height, width))
             mask[np.where(mask != obj['category_id'])] = 0

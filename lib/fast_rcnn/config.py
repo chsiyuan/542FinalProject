@@ -55,6 +55,8 @@ __C.IS_MULTISCALE = False
 #__C.TRAIN.ASPECTS = (1, 0.75, 0.5, 0.25)
 #__C.TRAIN.ASPECTS= (1,)
 
+# roi align output size
+__C.TRAIN.ROI_OUTPUT_SIZE = 7
 
 # Scales to use during training (can list multiple scales)
 # Each scale is the pixel size of an image's shortest side
@@ -155,6 +157,9 @@ __C.TRAIN.DEBUG_TIMELINE = False
 #
 
 __C.TEST = edict()
+
+# roi align output size
+__C.TEST.ROI_OUTPUT_SIZE = 7
 
 # Scales to use during testing (can list multiple scales)
 # Each scale is the pixel size of an image's shortest side
