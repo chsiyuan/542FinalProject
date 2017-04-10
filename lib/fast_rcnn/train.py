@@ -131,6 +131,11 @@ class SolverWrapper(object):
         #
         data_layer = get_data_layer(self.roidb, num_classes)
 
+        if cfg.DEBUG:
+            print 'train_model'
+            for key in data_layer._roidb[0]:
+                print key
+
         # RPN
         # classification loss
         rpn_cls_score = tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2])
@@ -168,10 +173,14 @@ class SolverWrapper(object):
 
         # mask loss (average binary sigmoid cross entropy)
         mask_out = self.net.get_output('mask_out')
-        mask_gt = self.net.get_output('roi-data')[5]
-        mask_weights = self.net.get_output('roi-data')[7]
+        mask_shape = mask_out.get_shape().as_list()
+        mask_gt = tf.reshape(self.net.get_output('roi-data')[5],[-1,mask_shape[1],mask_shape[2],num_classes])
+        mask_weights = tf.reshape(self.net.get_output('roi-data')[7],[-1,mask_shape[1],mask_shape[2],num_classes])
         loss_mask_all = tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(logits=mask_out, labels=mask_gt), mask_weights)
-        loss_mask = tf.reduce_mean(tf.reduce_sum(cross_entropy_all, 3))
+        print mask_out.get_shape().as_list()
+        print mask_gt.get_shape().as_list()
+        print loss_mask_all.get_shape().as_list()
+        loss_mask = tf.reduce_mean(tf.reduce_sum(loss_mask_all, 3))
 
         # final loss
         loss = rpn_cross_entropy + rpn_loss_box + cross_entropy + loss_box + loss_mask
@@ -216,6 +225,19 @@ class SolverWrapper(object):
                         options=run_options,
                         run_metadata=run_metadata)
 
+            # cls_score_value, labels_value, \
+            # label_weights_value, cross_entropy_all_value, _ \
+            # = sess.run([cls_score, labels, label_weights, cross_entropy_all, train_op],
+            #             feed_dict=feed_dict,
+            #             options=run_options,
+            #             run_metadata=run_metadata)
+
+            mask_gt_value, mask_weights_value, _ \
+            = sess.run([mask_gt, mask_weights, train_op],
+                        feed_dict=feed_dict,
+                        options=run_options,
+                        run_metadata=run_metadata)
+
             timer.toc()
 
             if cfg.TRAIN.DEBUG_TIMELINE:
@@ -224,13 +246,28 @@ class SolverWrapper(object):
                 trace_file.write(trace.generate_chrome_trace_format(show_memory=False))
                 trace_file.close()
 
-            if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
-                if cfg.TRAIN.STAGE == 1 or cfg.TRAIN.STAGE == 3:
-                    print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, lr: %f'%\
-                    (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value, rpn_loss_cls_value, rpn_loss_box_value, lr.eval())
-                else:
-                    print 'iter: %d / %d, total loss: %.4f, loss_cls: %.4f, loss_box: %.4f, loss_mask: %.4f, lr: %f'%\
-                    (iter+1, max_iters, loss_cls_value + loss_box_value + loss_mask_value, loss_cls_value, loss_box_value, loss_mask_value, lr.eval())
+            # if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
+            if (iter+1) % (1) == 0:  
+                print 'mask_gt[0,:,:59]'
+                print mask_gt[0,:,:,59].eval()
+                print 'mask_weights[0,:,:59]'
+                print mask_weights[0,:,:,59].eval()
+                print 'mask_gt[0,:,:38]'
+                print mask_gt[0,:,:,38].eval()
+                print 'mask_weights[0,:,:38]'
+                print mask_weights[0,:,:,38].eval()
+
+                # print 'cls_score_value: '
+                # print cls_score_value[0]
+                # print 'labels_value:'
+                # print labels_value[0]
+                # print 'label_weights_value:'
+                # print label_weights_value[0]
+                # print 'cross_entropy_all_value:'
+                # print cross_entropy_all_value[0]
+                # print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, loss_mask: %.4f, lr: %f'%\
+                # (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value + loss_mask_value, \
+                #     rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, loss_mask_value, lr.eval())
 
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
@@ -307,7 +344,15 @@ def filter_roidb(roidb):
 
 def train_net(network, imdb, roidb, output_dir, pretrained_model=None, max_iters=40000):
     """Train a Fast R-CNN network."""
+    if cfg.DEBUG:
+        print 'train_net before filter_roidb'
+        for key in roidb[0]:
+            print key
     roidb = filter_roidb(roidb)
+    if cfg.DEBUG:
+        print 'train_net after filter_roidb'
+        for key in roidb[0]:
+            print key
     saver = tf.train.Saver(max_to_keep=100)  # the maximum number of check point files is 100
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         sw = SolverWrapper(sess, saver, network, imdb, roidb, output_dir, pretrained_model=pretrained_model)

@@ -61,13 +61,13 @@ for split in ['train', 'val', 'trainval', 'test']:
 for year in ['2014']:
     for split in ['train', 'val', 'minival', 'valminusminival']:
         name = 'coco_{}_{}'.format(year, split)
-        __sets[name] = (lambda split=split, year=year: coco(split, year))
+        __sets[name] = (lambda split=split, year=year: datasets.coco(split, year))
 
 # Set up coco_2015_<split>
 for year in ['2015']:
     for split in ['test', 'test-dev']:
         name = 'coco_{}_{}'.format(year, split)
-        __sets[name] = (lambda split=split, year=year: coco(split, year))
+        __sets[name] = (lambda split=split, year=year: datasets.coco(split, year))
 
 # NTHU dataset
 for split in ['71', '370']:

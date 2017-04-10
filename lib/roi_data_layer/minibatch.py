@@ -13,6 +13,7 @@ import cv2
 from fast_rcnn.config import cfg
 from utils.blob import prep_im_for_blob, im_list_to_blob
 
+
 def get_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
     num_images = len(roidb)
@@ -46,7 +47,12 @@ def get_minibatch(roidb, num_classes):
         # Add groundtruth masks to blob
         #********************************
         gt_masks = np.empty((len(gt_inds), im_blob.shape[1], im_blob.shape[2]), dtype=np.uint16)
-        gt_masks_org = roidb[0]['boxes'][gt_inds, :, :]
+
+        if cfg.DEBUG:
+            for key in roidb[0]:
+                print key
+
+        gt_masks_org = roidb[0]['masks'][gt_inds, :, :]
         for i in range(len(gt_inds)):
             gt_masks[i, :, :] = cv2.resize(gt_masks_org[i, :, :], None, None, fx=im_scales[0], fy=im_scales[0],
                               interpolation=cv2.INTER_LINEAR)
@@ -149,7 +155,7 @@ def _get_image_blob(roidb, scale_inds):
         #******************************
         #   Add deformed mask to input
         #******************************
-        deformed_mask = cv2.imread(roidb[i]['deformed_mask'])
+        deformed_mask = cv2.imread(roidb[i]['deformed_mask'],0)
         im = np.zeros((im_bgr.shape[0], im_bgr.shape[1], 4))
         im[:,:,0:3] = im_bgr
         im[:,:,3] = deformed_mask

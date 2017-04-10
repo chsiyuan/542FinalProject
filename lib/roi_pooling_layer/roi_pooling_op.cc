@@ -223,8 +223,8 @@ class RoiPoolOp : public OpKernel {
               maxidx_x = randPoint[0];
               maxidx_y = randPoint[1];
             }
-            std::cout << "rand value " << i << ": " << randValue << std::endl;
-            std::cout << "rand point " << i << ": " << randPoint[0] << " " << randPoint[1] << std::endl;
+            // std::cout << "rand value " << i << ": " << randValue << std::endl;
+            // std::cout << "rand point " << i << ": " << randPoint[0] << " " << randPoint[1] << std::endl;
           }
         }
         output(b) = maxval;
@@ -485,8 +485,8 @@ class RoiPoolGradOp : public OpKernel {
 
                 float coeff = (1 - std::abs(maxidx_x - h)) * (1 - std::abs(maxidx_y - w));
                 gradient += offset_top_diff[(ph * pooled_width + pw) * num_channels + c] * coeff;
-                std::cout<<"h: "<< h <<" w: "<<w<<" maxidx_x: "<<maxidx_x<<" maxidx_y:"<<maxidx_y<<std::endl;
-                std::cout<<" coeff: "<<coeff<<std::endl;
+                // std::cout<<"h: "<< h <<" w: "<<w<<" maxidx_x: "<<maxidx_x<<" maxidx_y:"<<maxidx_y<<std::endl;
+                // std::cout<<" coeff: "<<coeff<<std::endl;
               }
             }
           }

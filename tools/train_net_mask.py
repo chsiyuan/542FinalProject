@@ -75,7 +75,7 @@ if __name__ == '__main__':
     print('Using config:')
     pprint.pprint(cfg)
 
-    if args.device is 'gpu'
+    if args.device is 'gpu':
         cfg.USE_GPU_NMS = True
         if args.device_id is not None:
             cfg.GPU_ID = device_id
@@ -94,6 +94,10 @@ if __name__ == '__main__':
     #**************************************
     roidb = get_training_roidb(imdb)
 
+    if cfg.DEBUG:
+        for key in roidb[0]:
+            print key
+        
     # output_dir = get_output_dir(imdb, None)
     output_dir = "../results"
     if not os.path.exists(output_dir):

@@ -63,11 +63,13 @@ def proposal_target_layer(rpn_rois, gt_boxes, gt_masks,_num_classes):
         print 'ratio: {:.3f}'.format(float(_fg_num) / float(_bg_num))
 
     rois = rois.reshape(-1,5)
-    labels = labels.reshape(-1,1)
+    labels = labels.reshape(-1,_num_classes)
     bbox_targets = bbox_targets.reshape(-1,_num_classes*4)
     bbox_inside_weights = bbox_inside_weights.reshape(-1,_num_classes*4)
-
+    mask_gt = mask_gt.reshape(-1,cfg.TRAIN.ROI_OUTPUT_SIZE *2,cfg.TRAIN.ROI_OUTPUT_SIZE *2, _num_classes)
+    mask_weights = mask_weights.reshape(-1,cfg.TRAIN.ROI_OUTPUT_SIZE *2,cfg.TRAIN.ROI_OUTPUT_SIZE *2, _num_classes)
     bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
+    label_weights = label_weights.reshape(-1,_num_classes)
 
     return rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights,mask_gt,label_weights, mask_weights
 
@@ -103,7 +105,7 @@ def _get_bbox_regression_labels(bbox_target_data, labels_data, mask_gt_data, num
         bbox_inside_weights[ind, start:end] = cfg.TRAIN.BBOX_INSIDE_WEIGHTS
         mask_gt[ind, :, :, cls] = mask_gt_data[ind, :, :]
         mask_weights[ind, :, :, cls] = np.ones((mask_gt_data.shape[1], mask_gt_data.shape[2]))
-        labels[ind, cls] = cls
+        labels[ind, cls] = 1
         label_weights[ind, cls] = 1
 
     return bbox_targets, bbox_inside_weights, labels, label_weights, mask_gt, mask_weights
@@ -172,15 +174,33 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
     # clip to roi region
     # resize to 14*14
     #*********************
-    mask_gt_keep = gt_masks[gt_assignment[keep_ins], :, :]
+    mask_gt_keep = gt_masks[gt_assignment[keep_inds], :, :]
     scale = cfg.TRAIN.ROI_OUTPUT_SIZE*2
-    mask_gt_data = np.zeros((len(keep_ins), scale, scale))
-    for i in range(len(keep_ins)):
-        roi = rois[i,1:5]
-        mask_gt_clip = mask_gt_keep[round(roi[0]):round[roi[2]], round(roi[1]):round(roi[3])]
-        fx = scale/mask_gt_clip.shape[0]
-        fy = scale/mask_gt_clip.shape[1]
-        mask_gt_data[i,:,:] = cv2.resize(mask_gt_clip, None, fx=fx, fy=fy)
+    mask_gt_data = np.zeros((len(keep_inds), scale, scale))
+    for i in range(len(keep_inds)):
+        if labels[i] >0:
+            roi = rois[i,1:5]
+            if cfg.DEBUG:
+                print '_sample_roi'
+                print 'i: '+ str(i) +' labels[i]:' + str(labels[i])
+                print 'roi' +str(roi[0]) + ' ' +  str(roi[1]) + ' ' + str(roi[2]) + ' ' + str(roi[3])  
+            mask_gt_clip = mask_gt_keep[i, int(round(roi[0])) : int(round(roi[2]))+1, int(round(roi[1])) : int(round(roi[3]))+1]
+            if cfg.DEBUG:
+                print 'mask_gt_keep.shape[1]: ' +str(mask_gt_keep.shape[1])
+                print 'mask_gt_keep.shape[2]: ' + str(mask_gt_keep.shape[2])
+                print 'mask_gt_clip.shape[0]: ' +str(mask_gt_clip.shape[0])
+                print 'mask_gt_clip.shape[1]: ' + str(mask_gt_clip.shape[1])
+            fx = float(scale)/mask_gt_clip.shape[1]
+            fy = float(scale)/mask_gt_clip.shape[0]
+            if cfg.DEBUG:
+                print 'mask_gt_clip.shape[0]: ' +str(mask_gt_clip.shape[0])
+                print 'mask_gt_clip.shape[1]: ' + str(mask_gt_clip.shape[1])
+                print 'scale: ' +str(scale)
+                print 'fx:' +str(fx)
+                print 'fy:' +str(fy)
+            mask_gt_data[i,:,:] = cv2.resize(mask_gt_clip, None, fx=fx, fy=fy)
+        else:
+            mask_gt_data[i,:,:] = np.zeros((scale,scale))
 
     labels_data = labels
     bbox_targets, bbox_inside_weights, labels, label_weights, mask_gt, mask_weights = \

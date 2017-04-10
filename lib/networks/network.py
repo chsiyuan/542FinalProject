@@ -93,13 +93,19 @@ class Network(object):
 
     @layer
     def conv(self, input, k_h, k_w, c_o, s_h, s_w, name, relu=True, padding=DEFAULT_PADDING, group=1, trainable=True):
+        
+        print name     
+        if isinstance(input, tuple):
+            input = input[0]   
+
         self.validate_padding(padding)
         c_i = input.get_shape()[-1]
+        print c_i
+        print input.get_shape().as_list()
         assert c_i%group==0
         assert c_o%group==0
         convolve = lambda i, k: tf.nn.conv2d(i, k, [1, s_h, s_w, 1], padding=padding)
         with tf.variable_scope(name) as scope:
-
             init_weights = tf.truncated_normal_initializer(0.0, stddev=0.01)
             init_biases = tf.constant_initializer(0.0)
             kernel = self.make_var('weights', [k_h, k_w, c_i/group, c_o], init_weights, trainable)
@@ -157,6 +163,7 @@ class Network(object):
 
     @layer
     def proposal_layer(self, input, _feat_stride, anchor_scales, cfg_key, name):
+        print name
         if isinstance(input[0], tuple):
             input[0] = input[0][0]
         return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2], cfg_key, _feat_stride, anchor_scales], [tf.float32]),[-1,5],name =name)
@@ -164,6 +171,8 @@ class Network(object):
 
     @layer
     def anchor_target_layer(self, input, _feat_stride, anchor_scales, name):
+
+        print name
         if isinstance(input[0], tuple):
             input[0] = input[0][0]
 
@@ -185,6 +194,8 @@ class Network(object):
 
     @layer
     def proposal_target_layer(self, input, classes, name):
+
+        print name
         if isinstance(input[0], tuple):
             input[0] = input[0][0]
         with tf.variable_scope(name) as scope:
@@ -196,7 +207,7 @@ class Network(object):
                 [tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32])
 
             rois = tf.reshape(rois,[-1,5] , name = 'rois') 
-            labels = tf.convert_to_tensor(tf.cast(labels,tf.int32), name = 'labels')
+            labels = tf.convert_to_tensor(labels, name = 'labels')
             bbox_targets = tf.convert_to_tensor(bbox_targets, name = 'bbox_targets')
             bbox_inside_weights = tf.convert_to_tensor(bbox_inside_weights, name = 'bbox_inside_weights')
             bbox_outside_weights = tf.convert_to_tensor(bbox_outside_weights, name = 'bbox_outside_weights')
@@ -240,6 +251,8 @@ class Network(object):
 
     @layer
     def fc(self, input, num_out, name, relu=True, trainable=True):
+
+        print name
         with tf.variable_scope(name) as scope:
             # only use the first input
             if isinstance(input, tuple):
@@ -278,26 +291,34 @@ class Network(object):
 
     @layer
     def dropout(self, input, keep_prob, name):
+        print name
+
         return tf.nn.dropout(input, keep_prob, name=name)
 
     @layer
-    def upscore(self, input, ksize = 2, stride = 2, c_out, name)
+    def upscore(self, input, ksize, stride, c_out, name, trainable=True):
+
+        print name
         strides = [1, stride, stride, 1]
+        print input
         with tf.variable_scope(name) as scope:
             in_shape = input.get_shape().as_list()
             c_in = in_shape[-1]  # number of input channels, 1024
-
-            # calculate output shape
+            # # calculate output shape
             h = in_shape[1] * 2
             w = in_shape[2] * 2
-            # the number of channels of output should be the same with input?
-            out_shape = tf.convert_to_tensor([in_shape[0], h, w, c_out])
+            batch_size = tf.shape(input)[0]
+            out_shape = tf.stack([batch_size, h, w, c_out])
+            print 'batch_size'
+            print batch_size
 
             # get deconv kernel
-            stddev = 0.02
             kernel_size = [ksize, ksize, c_out, c_in]
-            init_kernel = tf.truncated_normal(kernel_size, stddev=stddev)
 
             # get variable
-            kernel = self.make_var('up_kernel', kernel_size, init_kernel, trainable)
-            return tf.nn.conv2d_transpose(input, kernel, out_shape, strides=strides, padding='SAME', data_format='NHWC')
+            init_weights = tf.truncated_normal_initializer(0.0, stddev=0.01)
+            kernel = self.make_var('up_kernel', kernel_size, init_weights, trainable)
+
+            output = tf.nn.conv2d_transpose(input, kernel, out_shape, strides=strides, padding='SAME', data_format='NHWC')
+
+            return tf.reshape(output,[-1, h, w, c_out])

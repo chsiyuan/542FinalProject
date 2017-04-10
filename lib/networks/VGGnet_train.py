@@ -14,7 +14,7 @@ class VGGnet_train(Network):
         self.data = tf.placeholder(tf.float32, shape=[None, None, None, 4])
         self.im_info = tf.placeholder(tf.float32, shape=[None, 3])
         self.gt_boxes = tf.placeholder(tf.float32, shape=[None, 5])
-        self.gt_masks = tf.placeholder(tf.float32, shape=[None, None, None, 3])
+        self.gt_masks = tf.placeholder(tf.float32, shape=[None, None, None])
         self.keep_prob = tf.placeholder(tf.float32)
         self.layers = dict({'data':self.data, 'im_info':self.im_info, 'gt_boxes':self.gt_boxes, 'gt_masks':self.gt_masks})
         self.trainable = trainable

@@ -66,7 +66,7 @@ class coco(imdb):
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
         self._roidb_handler = self.gt_roidb
-        self.set_proposal_method('selective_search')
+        # self.set_proposal_method('selective_search')
         self.competition_mode(False)
 
         # Some image sets are "views" (i.e. subsets) into others.
@@ -163,6 +163,7 @@ class coco(imdb):
         with open(cache_file, 'wb') as fid:
             cPickle.dump(roidb, fid, cPickle.HIGHEST_PROTOCOL)
         print 'wrote {:s} roidb to {:s}'.format(method, cache_file)
+        print '_roidb_from_proposals'
         return roidb
 
     def _load_proposals(self, method, gt_roidb):
@@ -185,6 +186,7 @@ class coco(imdb):
         assert method in valid_methods
 
         print 'Loading {} boxes'.format(method)
+        print "_load_proposals"
         for i, index in enumerate(self._image_index):
             if i % 1000 == 0:
                 print '{:d} / {:d}'.format(i + 1, len(self._image_index))
@@ -217,6 +219,9 @@ class coco(imdb):
         Return the database of ground-truth regions of interest.
         This function loads/saves from/to a cache file to speed up future calls.
         """
+        if cfg.DEBUG:
+            print 'gt_roidb'
+
         cache_file = osp.join(self.cache_path, self.name + '_gt_roidb.pkl')
         if osp.exists(cache_file):
             with open(cache_file, 'rb') as fid:
@@ -238,6 +243,9 @@ class coco(imdb):
         handled by marking their overlaps (with all categories) to -1. This
         overlap value means that crowd "instances" are excluded from training.
         """
+        if cfg.DEBUG:
+            print '_load_coco_annotation'
+            
         im_ann = self._COCO.loadImgs(index)[0]
         width = im_ann['width']
         height = im_ann['height']
@@ -291,6 +299,9 @@ class coco(imdb):
             mask[np.where(mask != obj['category_id'])] = 0
             mask[np.where(mask == obj['category_id'])] = 1
             masks[ix,:,:] = mask
+
+        if cfg.DEBUG:
+            print masks.shape
 
         ds_utils.validate_boxes(boxes, width=width, height=height)
         overlaps = scipy.sparse.csr_matrix(overlaps)

@@ -20,18 +20,29 @@ class RoIDataLayer(object):
     def __init__(self, roidb, num_classes):
         """Set the roidb to be used by this layer during training."""
         self._roidb = roidb
+
+        if cfg.DEBUG:
+            print 'ROIDataLayer: _init:'
+            for key in roidb[1]:
+                print key
+
         self._num_classes = num_classes
         self._shuffle_roidb_inds()
 
     def _shuffle_roidb_inds(self):
         """Randomly permute the training roidb."""
         self._perm = np.random.permutation(np.arange(len(self._roidb)))
+
         self._cur = 0
 
     def _get_next_minibatch_inds(self):
         """Return the roidb indices for the next minibatch."""
         
         if cfg.TRAIN.HAS_RPN:
+            if cfg.DEBUG:
+                print 'FUNCTION: _get_next_minibatch_inds: '
+                print len(self._roidb)
+
             if self._cur + cfg.TRAIN.IMS_PER_BATCH >= len(self._roidb):
                 self._shuffle_roidb_inds()
 
@@ -62,6 +73,13 @@ class RoIDataLayer(object):
         """
         db_inds = self._get_next_minibatch_inds()
         minibatch_db = [self._roidb[i] for i in db_inds]
+        if cfg.DEBUG:
+            print 'ROIDataLayer: _get_next_minibatch:'
+            print 'db_inds:'
+            print db_inds
+            print 'minibatch_db[0] key:'
+            for key in minibatch_db[0]:
+                print key
         return get_minibatch(minibatch_db, self._num_classes)
             
     def forward(self):
