@@ -13,6 +13,7 @@ import datasets.pascal_voc
 import datasets.imagenet3d
 import datasets.kitti
 import datasets.kitti_tracking
+import datasets.coco
 import numpy as np
 
 def _selective_search_IJCV_top_k(split, year, top_k):
