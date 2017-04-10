@@ -191,7 +191,9 @@ class Network(object):
             #******************************************
             #  Add mask_out (gt masks cropped to rois)
             #******************************************
-            rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights,mask_gt = tf.py_func(proposal_target_layer_py,[input[0],input[1],input[2],classes],[tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32])
+            rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights,mask_gt,label_weights,mask_weights =\
+            tf.py_func(proposal_target_layer_py,[input[0],input[1],input[2],classes],\
+                [tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32])
 
             rois = tf.reshape(rois,[-1,5] , name = 'rois') 
             labels = tf.convert_to_tensor(tf.cast(labels,tf.int32), name = 'labels')
@@ -199,8 +201,10 @@ class Network(object):
             bbox_inside_weights = tf.convert_to_tensor(bbox_inside_weights, name = 'bbox_inside_weights')
             bbox_outside_weights = tf.convert_to_tensor(bbox_outside_weights, name = 'bbox_outside_weights')
             mask_gt = tf.convert_to_tensor(mask_gt, name = 'mask_gt')
-           
-            return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, mask_gt
+            label_weights = tf.convert_to_tensor(label_weights, name = 'label_weights')
+            mask_weights = tf.convert_to_tensor(mask_weights, name = 'mask_weights')
+                    #0      #1      #2              #3                  #4                  #5          #6              #7
+            return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, mask_gt, label_weights, mask_weights
 
 
     @layer

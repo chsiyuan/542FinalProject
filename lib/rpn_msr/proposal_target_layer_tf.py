@@ -45,12 +45,12 @@ def proposal_target_layer(rpn_rois, gt_boxes, gt_masks,_num_classes):
 
     # Sample rois with classification labels and bounding box regression
     # targets
-    #*************************
+    #******************************************************
     #  Add gt_masks as input
-    #*************************
-    labels, rois, bbox_targets, bbox_inside_weights, mask_gt = _sample_rois(
-                            all_rois, gt_boxes, gt_masks, fg_rois_per_image,
-                            rois_per_image, _num_classes)
+    #  Also expand labels and masks and output their weights
+    #******************************************************
+    labels, rois, bbox_targets, bbox_inside_weights, mask_gt, label_weights, mask_weights\
+    = _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image, _num_classes)
 
     if DEBUG:
         print 'num fg: {}'.format((labels > 0).sum())
@@ -69,9 +69,9 @@ def proposal_target_layer(rpn_rois, gt_boxes, gt_masks,_num_classes):
 
     bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
 
-    return rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights,mask_gt
+    return rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights,mask_gt,label_weights, mask_weights
 
-def _get_bbox_regression_labels(bbox_target_data, num_classes):
+def _get_bbox_regression_labels(bbox_target_data, labels_data, mask_gt_data, num_classes):
     """Bounding-box regression targets (bbox_target_data) are stored in a
     compact form N x (class, tx, ty, tw, th)
 
@@ -81,11 +81,19 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
     Returns:
         bbox_target (ndarray): N x 4K blob of regression targets
         bbox_inside_weights (ndarray): N x 4K blob of loss weights
+        labels (ndarray): N x K blob of class labels
+        label_weights: N x K blob of label weights
+        mask_gt: N x 14 x 14 x K blob of masks
+        mask_weights: N x 14 x 14 x K blob of mask weights
     """
 
     clss = np.array(bbox_target_data[:, 0], dtype=np.uint16, copy=True)
     bbox_targets = np.zeros((clss.size, 4 * num_classes), dtype=np.float32)
     bbox_inside_weights = np.zeros(bbox_targets.shape, dtype=np.float32)
+    mask_gt = np.zeros((clss.size, mask_gt_data.shape[1], mask_gt_data.shape[2], num_classes), dtype=np.float32)
+    mask_weights = np.zeros(mask_gt.shape, dtype=np.float32)
+    labels = np.zeros((clss.size, num_classes), dtype=np.float32)
+    label_weights = np.zeros(labels.shape, dtype=np.float32)
     inds = np.where(clss > 0)[0]
     for ind in inds:
         cls = clss[ind]
@@ -93,7 +101,12 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
         end = start + 4
         bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
         bbox_inside_weights[ind, start:end] = cfg.TRAIN.BBOX_INSIDE_WEIGHTS
-    return bbox_targets, bbox_inside_weights
+        mask_gt[ind, :, :, cls] = mask_gt_data[ind, :, :]
+        mask_weights[ind, :, :, cls] = np.ones((mask_gt_data.shape[1], mask_gt_data.shape[2]))
+        labels[ind, cls] = cls
+        label_weights[ind, cls] = 1
+
+    return bbox_targets, bbox_inside_weights, labels, label_weights, mask_gt, mask_weights
 
 
 def _compute_targets(ex_rois, gt_rois, labels):
@@ -154,9 +167,6 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
     bbox_target_data = _compute_targets(
         rois[:, 1:5], gt_boxes[gt_assignment[keep_inds], :4], labels)
 
-    bbox_targets, bbox_inside_weights = \
-        _get_bbox_regression_labels(bbox_target_data, num_classes)
-
     #*********************
     # sample gt_masks
     # clip to roi region
@@ -164,12 +174,16 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
     #*********************
     mask_gt_keep = gt_masks[gt_assignment[keep_ins], :, :]
     scale = cfg.TRAIN.ROI_OUTPUT_SIZE*2
-    mask_gt = np.zeros((len(keep_ins), scale, scale))
+    mask_gt_data = np.zeros((len(keep_ins), scale, scale))
     for i in range(len(keep_ins)):
         roi = rois[i,1:5]
         mask_gt_clip = mask_gt_keep[round(roi[0]):round[roi[2]], round(roi[1]):round(roi[3])]
         fx = scale/mask_gt_clip.shape[0]
         fy = scale/mask_gt_clip.shape[1]
-        mask_gt[i,:,:] = cv2.resize(mask_gt_clip, None, fx=fx, fy=fy)
+        mask_gt_data[i,:,:] = cv2.resize(mask_gt_clip, None, fx=fx, fy=fy)
 
-    return labels, rois, bbox_targets, bbox_inside_weights, mask_gt
+    labels_data = labels
+    bbox_targets, bbox_inside_weights, labels, label_weights, mask_gt, mask_weights = \
+        _get_bbox_regression_labels(bbox_target_data, labels_data, mask_gt_data, num_classes)
+
+    return labels, rois, bbox_targets, bbox_inside_weights, mask_gt, label_weights, mask_weights

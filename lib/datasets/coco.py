@@ -289,6 +289,7 @@ class coco(imdb):
             mask_flat = np.asarray(list(PIL.Image.open(mask_path).getdata()))
             mask = mask_flat.reshape((height, width))
             mask[np.where(mask != obj['category_id'])] = 0
+            mask[np.where(mask == obj['category_id'])] = 1
             masks[ix,:,:] = mask
 
         ds_utils.validate_boxes(boxes, width=width, height=height)

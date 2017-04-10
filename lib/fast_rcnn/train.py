@@ -105,27 +105,27 @@ class SolverWrapper(object):
 
         return outside_mul
 
-    def _binary_mask_loss(self, mask_out, mask_gt, label):
-        num_roi = mask_out.get_shape().as_list()[0]
-        h = mask_out.get_shape().as_list()[1]
-        w = mask_out.get_shape().as_list()[2]
-        mask_match = tf.convert_to_tensor(np.zeros((num_roi, h, w)))
-        mask_weights = tf.convert_to_tensor(np.zeros((num_roi, h, w)))
-        for i in range(num_roi):
-            if label[i] > 0:
-                mask_weights[i,:,:] = tf.convert_to_tensor(np.ones((h, w)))
-                mask_match[i,:,:] = mask_out[i,:,:,label[i]-1]
-            else:
-                mask_match[i,:,:] = mask_out[i,:,:,0]
-        loss_mask = tf.nn.sigmoid_cross_entropy_with_logits(logits=mask_match, labels=mask_gt)
-        loss_mask = tf.nn.reduce_mean(tf.multiply(loss_mask, mask_weights))
-        return loss_mask
+    # def _binary_mask_loss(self, mask_out, mask_gt, labels, mask_weights):
+    #     num_roi = mask_out.get_shape().as_list()[0]
+    #     h = mask_out.get_shape().as_list()[1]
+    #     w = mask_out.get_shape().as_list()[2]
+    #     mask_match = tf.convert_to_tensor(np.zeros((num_roi, h, w)))
+    #     mask_weights = tf.convert_to_tensor(np.zeros((num_roi, h, w)))
+    #     for i in range(num_roi):
+    #         if label[i] > 0:
+    #             mask_weights[i,:,:] = tf.convert_to_tensor(np.ones((h, w)))
+    #             mask_match[i,:,:] = mask_out[i,:,:,label[i]-1]
+    #         else:
+    #             mask_match[i,:,:] = mask_out[i,:,:,0]
+    #     loss_mask = tf.nn.sigmoid_cross_entropy_with_logits(logits=mask_match, labels=mask_gt)
+    #     loss_mask = tf.nn.reduce_mean(tf.multiply(loss_mask, mask_weights))
+    #     return loss_mask
 
 
     def train_model(self, sess, max_iters):
         """Network training loop."""
 
-        num_classes = self.imdb.num_classes
+        num_classes = self.imdb.num_classes  # 81 classes (read in coco.py)
         #
         # set up RoIDataLayer() class. We will use the function of this class to get next batch of images.
         #
@@ -149,15 +149,13 @@ class SolverWrapper(object):
         rpn_loss_box = tf.reduce_mean(tf.reduce_sum(rpn_smooth_l1, reduction_indices=[1, 2, 3]))
 
         # R-CNN
-        # classification loss
+        # classification loss (binary sigmoid cross entropy)
         cls_score = self.net.get_output('cls_score')
-        label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
+        labels = tf.reshape(self.net.get_output('roi-data')[1],[-1, num_classes])
+        label_weights = tf.reshape(self.net.get_output('roi-data')[6],[-1, num_classes])
         # cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
-        num_roi = cls_score.get_shape().as_list()[0]
-        cls_match_score = tf.convert_to_tensor(np.zeros(num_roi))
-        for i in range(num_roi):
-            cls_match_score[i] = cls_score[i][label[i]]
-        cross_entropy = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_match_score, labels=label))
+        cross_entropy_all = tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_score, labels=labels), label_weights)
+        cross_entropy = tf.reduce_mean(tf.reduce_sum(cross_entropy_all, 1))
 
         # bounding box regression L1 loss
         bbox_pred = self.net.get_output('bbox_pred')
@@ -168,10 +166,12 @@ class SolverWrapper(object):
         smooth_l1 = self._modified_smooth_l1(1.0, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
         loss_box = tf.reduce_mean(tf.reduce_sum(smooth_l1, reduction_indices=[1]))
 
-        # mask loss
+        # mask loss (average binary sigmoid cross entropy)
         mask_out = self.net.get_output('mask_out')
         mask_gt = self.net.get_output('roi-data')[5]
-        loss_mask = self._binary_mask_loss(mask_out, mask_gt, label)
+        mask_weights = self.net.get_output('roi-data')[7]
+        loss_mask_all = tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(logits=mask_out, labels=mask_gt), mask_weights)
+        loss_mask = tf.reduce_mean(tf.reduce_sum(cross_entropy_all, 3))
 
         # final loss
         loss = rpn_cross_entropy + rpn_loss_box + cross_entropy + loss_box + loss_mask
