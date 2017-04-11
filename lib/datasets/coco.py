@@ -17,10 +17,12 @@ import cPickle
 import json
 import uuid
 import PIL
+import mat4py.mat4py
 # COCO API
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as COCOmask
+import mat4py.mat4py
 
 def _filter_crowd_proposals(roidb, crowd_thresh):
     """
@@ -294,10 +296,12 @@ class coco(imdb):
             #*************************************
             # path e.g., /data/coco/gt_mask/train2014/groundt_train_000000000009.png
             mask_path = osp.join(self._data_path, 'gt_mask', self._data_name, obj['mask_name'])
-            mask_flat = np.asarray(list(PIL.Image.open(mask_path).getdata()))
-            mask = mask_flat.reshape((height, width))
-            mask[np.where(mask != obj['category_id'])] = 0
-            mask[np.where(mask == obj['category_id'])] = 1
+
+            mask = np.asarray(mat4py.loadmat(mask_path)['mask_gt'])
+            # mask_flat = np.asarray(list(PIL.Image.open(mask_path).getdata()))
+            # mask = mask_flat.reshape((height, width))
+            mask[np.where(mask != obj['id'])] = 0
+            mask[np.where(mask == obj['id'])] = 1
             masks[ix,:,:] = mask
 
         if cfg.DEBUG:
