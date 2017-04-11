@@ -249,13 +249,14 @@ class SolverWrapper(object):
             # if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
             if (iter+1) % (1) == 0:  
                 print 'mask_gt[0,:,:59]'
-                print mask_gt[0,:,:,59].eval()
+                print type(mask_gt_value)
+                print mask_gt_value[0,:,:,59]
                 print 'mask_weights[0,:,:59]'
-                print mask_weights[0,:,:,59].eval()
+                print mask_weights_value[0,:,:,59]
                 print 'mask_gt[0,:,:38]'
-                print mask_gt[0,:,:,38].eval()
+                print mask_gt_value[0,:,:,38]
                 print 'mask_weights[0,:,:38]'
-                print mask_weights[0,:,:,38].eval()
+                print mask_weights_value[0,:,:,38]
 
                 # print 'cls_score_value: '
                 # print cls_score_value[0]

@@ -1,0 +1,445 @@
++ echo Logging output to experiments/logs/mask_rcnn_train_VGGnet_train_cpu.2017-04-10_19-06-05.txt
+Logging output to experiments/logs/mask_rcnn_train_VGGnet_train_cpu.2017-04-10_19-06-05.txt
++ python ./tools/train_net_mask.py --device cpu --device_id 0 --weights data/pretrain_model/VGG_imagenet.npy --imdb coco_2014_train --iters 1 --cfg experiments/cfgs/faster_rcnn_end2end.yml --network VGGnet_train
+voc_2007_train
+voc_2007_val
+voc_2007_trainval
+voc_2007_test
+kitti_train
+kitti_val
+kitti_trainval
+kitti_test
+nthu_71
+nthu_370
+Called with args:
+Namespace(cfg_file='experiments/cfgs/faster_rcnn_end2end.yml', device='cpu', device_id=0, imdb_name='coco_2014_train', max_iters=1, network_name='VGGnet_train', pretrained_model='data/pretrain_model/VGG_imagenet.npy', randomize=False, set_cfgs=None, solver=None)
+Using config:
+{'DATA_DIR': '/Users/ximengsun/Desktop/EECS 542/Assignments/Final/542FinalProject/data',
+ 'DEBUG': False,
+ 'DEDUP_BOXES': 0.0625,
+ 'EPS': 1e-14,
+ 'EXP_DIR': 'faster_rcnn_end2end',
+ 'IS_MULTISCALE': False,
+ 'MATLAB': 'matlab',
+ 'MODELS_DIR': '/Users/ximengsun/Desktop/EECS 542/Assignments/Final/542FinalProject/models/pascal_voc',
+ 'PIXEL_MEANS': array([[[ 102.9801,  115.9465,  122.7717,    0.    ]]]),
+ 'RNG_SEED': 3,
+ 'ROOT_DIR': '/Users/ximengsun/Desktop/EECS 542/Assignments/Final/542FinalProject',
+ 'TEST': {'BBOX_REG': True,
+          'DEBUG_TIMELINE': False,
+          'HAS_RPN': True,
+          'MAX_SIZE': 1000,
+          'NMS': 0.3,
+          'PROPOSAL_METHOD': 'selective_search',
+          'ROI_OUTPUT_SIZE': 7,
+          'RPN_MIN_SIZE': 16,
+          'RPN_NMS_THRESH': 0.7,
+          'RPN_POST_NMS_TOP_N': 300,
+          'RPN_PRE_NMS_TOP_N': 6000,
+          'SCALES': [600],
+          'SVM': False},
+ 'TRAIN': {'ASPECT_GROUPING': True,
+           'BATCH_SIZE': 128,
+           'BBOX_INSIDE_WEIGHTS': [1.0, 1.0, 1.0, 1.0],
+           'BBOX_NORMALIZE_MEANS': [0.0, 0.0, 0.0, 0.0],
+           'BBOX_NORMALIZE_STDS': [0.1, 0.1, 0.2, 0.2],
+           'BBOX_NORMALIZE_TARGETS': True,
+           'BBOX_NORMALIZE_TARGETS_PRECOMPUTED': True,
+           'BBOX_REG': True,
+           'BBOX_THRESH': 0.5,
+           'BG_THRESH_HI': 0.5,
+           'BG_THRESH_LO': 0.0,
+           'DEBUG_TIMELINE': False,
+           'DISPLAY': 10,
+           'FG_FRACTION': 0.25,
+           'FG_THRESH': 0.5,
+           'GAMMA': 0.1,
+           'HAS_RPN': True,
+           'IMS_PER_BATCH': 1,
+           'LEARNING_RATE': 0.001,
+           'MAX_SIZE': 1000,
+           'MOMENTUM': 0.9,
+           'PROPOSAL_METHOD': 'gt',
+           'ROI_OUTPUT_SIZE': 7,
+           'RPN_BATCHSIZE': 256,
+           'RPN_BBOX_INSIDE_WEIGHTS': [1.0, 1.0, 1.0, 1.0],
+           'RPN_CLOBBER_POSITIVES': False,
+           'RPN_FG_FRACTION': 0.5,
+           'RPN_MIN_SIZE': 16,
+           'RPN_NEGATIVE_OVERLAP': 0.3,
+           'RPN_NMS_THRESH': 0.7,
+           'RPN_POSITIVE_OVERLAP': 0.7,
+           'RPN_POSITIVE_WEIGHT': -1.0,
+           'RPN_POST_NMS_TOP_N': 2000,
+           'RPN_PRE_NMS_TOP_N': 12000,
+           'SCALES': [600],
+           'SNAPSHOT_INFIX': '',
+           'SNAPSHOT_ITERS': 5000,
+           'SNAPSHOT_PREFIX': 'VGGnet_mask_rcnn',
+           'STEPSIZE': 50000,
+           'USE_FLIPPED': False,
+           'USE_PREFETCH': False},
+ 'USE_GPU_NMS': False}
+<bound method coco.default_roidb of <datasets.coco.coco object at 0x113190e50>>
+loading annotations into memory...
+Done (t=0.00s)
+creating index...
+index created!
+Loaded dataset `coco_2014_train` for training
+Preparing training data...
+coco_2014_train gt roidb loaded from /Users/ximengsun/Desktop/EECS 542/Assignments/Final/542FinalProject/data/cache/coco_2014_train_gt_roidb.pkl
+done
+Output will be saved to `../results`
+/cpu:0
+Tensor("Placeholder:0", shape=(?, ?, ?, 4), dtype=float32)
+conv1_1
+4
+[None, None, None, 4]
+conv1_2
+64
+[None, None, None, 64]
+conv2_1
+64
+[None, None, None, 64]
+conv2_2
+128
+[None, None, None, 128]
+conv3_1
+128
+[None, None, None, 128]
+conv3_2
+256
+[None, None, None, 256]
+conv3_3
+256
+[None, None, None, 256]
+conv4_1
+256
+[None, None, None, 256]
+conv4_2
+512
+[None, None, None, 512]
+conv4_3
+512
+[None, None, None, 512]
+conv5_1
+512
+[None, None, None, 512]
+conv5_2
+512
+[None, None, None, 512]
+conv5_3
+512
+[None, None, None, 512]
+Tensor("conv5_3/conv5_3:0", shape=(?, ?, ?, 512), dtype=float32)
+rpn_conv/3x3
+512
+[None, None, None, 512]
+rpn_cls_score
+512
+[None, None, None, 512]
+Tensor("rpn_cls_score/rpn_cls_score:0", shape=(?, ?, ?, 18), dtype=float32)
+Tensor("Placeholder_2:0", shape=(?, 5), dtype=float32)
+Tensor("Placeholder_1:0", shape=(?, 3), dtype=float32)
+Tensor("Placeholder:0", shape=(?, ?, ?, 4), dtype=float32)
+rpn-data
+Tensor("rpn_conv/3x3/rpn_conv/3x3:0", shape=(?, ?, ?, 512), dtype=float32)
+rpn_bbox_pred
+512
+[None, None, None, 512]
+Tensor("rpn_cls_score/rpn_cls_score:0", shape=(?, ?, ?, 18), dtype=float32)
+Tensor("rpn_cls_prob:0", shape=(?, ?, ?, ?), dtype=float32)
+Tensor("rpn_cls_prob_reshape:0", shape=(?, ?, ?, 18), dtype=float32)
+Tensor("rpn_bbox_pred/rpn_bbox_pred:0", shape=(?, ?, ?, 36), dtype=float32)
+Tensor("Placeholder_1:0", shape=(?, 3), dtype=float32)
+rpn_rois
+Tensor("rpn_rois:0", shape=(?, 5), dtype=float32)
+Tensor("Placeholder_2:0", shape=(?, 5), dtype=float32)
+Tensor("Placeholder_3:0", shape=(?, ?, ?), dtype=float32)
+roi-data
+Tensor("conv5_3/conv5_3:0", shape=(?, ?, ?, 512), dtype=float32)
+(<tf.Tensor 'roi-data/rois:0' shape=(?, 5) dtype=float32>, <tf.Tensor 'roi-data/PyFunc:1' shape=<unknown> dtype=float32>, <tf.Tensor 'roi-data/PyFunc:2' shape=<unknown> dtype=float32>, <tf.Tensor 'roi-data/PyFunc:3' shape=<unknown> dtype=float32>, <tf.Tensor 'roi-data/PyFunc:4' shape=<unknown> dtype=float32>, <tf.Tensor 'roi-data/PyFunc:5' shape=<unknown> dtype=float32>, <tf.Tensor 'roi-data/PyFunc:6' shape=<unknown> dtype=float32>, <tf.Tensor 'roi-data/PyFunc:7' shape=<unknown> dtype=float32>)
+[<tf.Tensor 'conv5_3/conv5_3:0' shape=(?, ?, ?, 512) dtype=float32>, <tf.Tensor 'roi-data/rois:0' shape=(?, 5) dtype=float32>]
+fc6
+drop6
+fc7
+drop7
+cls_score
+Tensor("drop7/mul:0", shape=(?, 4096), dtype=float32)
+bbox_pred
+Tensor("pool_5:0", shape=(?, 7, 7, 512), dtype=float32)
+conv6_1
+512
+[None, 7, 7, 512]
+conv6_2
+1024
+[None, 7, 7, 1024]
+conv6_3
+1024
+[None, 7, 7, 1024]
+up_1
+Tensor("conv6_3/conv6_3:0", shape=(?, 7, 7, 1024), dtype=float32)
+batch_size
+Tensor("up_1/strided_slice:0", shape=(), dtype=int32)
+mask_out
+256
+[None, 14, 14, 256]
+Use network `VGGnet_train` in training
+Filtered 0 roidb entries: 5 -> 5
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+Computing bounding-box regression targets...
+bbox target means:
+[[ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]
+ [ 0.  0.  0.  0.]]
+[ 0.  0.  0.  0.]
+bbox target stdevs:
+[[ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]
+ [ 0.1  0.1  0.2  0.2]]
+[ 0.1  0.1  0.2  0.2]
+Normalizing targets
+done
+Solving...
+[None, 14, 14, 81]
+[None, 14, 14, 81]
+[None, 14, 14, 81]
+/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/ops/gradients_impl.py:91: UserWarning: Converting sparse IndexedSlices to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  "Converting sparse IndexedSlices to a dense Tensor of unknown shape. "
+Loading pretrained model weights from data/pretrain_model/VGG_imagenet.npy
+assign pretrain model weights to conv5_1
+assign pretrain model biases to conv5_1
+assign pretrain model weights to fc6
+assign pretrain model biases to fc6
+assign pretrain model weights to conv5_3
+assign pretrain model biases to conv5_3
+assign pretrain model weights to conv5_2
+assign pretrain model biases to conv5_2
+ignore fc8
+ignore fc8
+assign pretrain model weights to fc7
+assign pretrain model biases to fc7
+assign pretrain model weights to conv4_1
+assign pretrain model biases to conv4_1
+assign pretrain model weights to conv4_2
+assign pretrain model biases to conv4_2
+assign pretrain model weights to conv4_3
+assign pretrain model biases to conv4_3
+assign pretrain model weights to conv3_3
+assign pretrain model biases to conv3_3
+assign pretrain model weights to conv3_2
+assign pretrain model biases to conv3_2
+assign pretrain model weights to conv3_1
+assign pretrain model biases to conv3_1
+assign pretrain model weights to conv1_1
+assign pretrain model biases to conv1_1
+assign pretrain model weights to conv1_2
+assign pretrain model biases to conv1_2
+assign pretrain model weights to conv2_2
+assign pretrain model biases to conv2_2
+assign pretrain model weights to conv2_1
+assign pretrain model biases to conv2_1
+mask_gt[0,:,:59]
+Traceback (most recent call last):
+  File "./tools/train_net_mask.py", line 115, in <module>
+    max_iters=args.max_iters)
+  File "/Users/ximengsun/Desktop/EECS 542/Assignments/Final/542FinalProject/tools/../lib/fast_rcnn/train.py", line 360, in train_net
+    sw.train_model(sess, max_iters)
+  File "/Users/ximengsun/Desktop/EECS 542/Assignments/Final/542FinalProject/tools/../lib/fast_rcnn/train.py", line 252, in train_model
+    print mask_gt.eval()[0,:,:,59]
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/framework/ops.py", line 567, in eval
+    return _eval_using_default_session(self, feed_dict, self.graph, session)
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/framework/ops.py", line 3729, in _eval_using_default_session
+    return session.run(tensors, feed_dict)
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 767, in run
+    run_metadata_ptr)
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 965, in _run
+    feed_dict_string, options, run_metadata)
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 1015, in _do_run
+    target_list, options, run_metadata)
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 1035, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: You must feed a value for placeholder tensor 'Placeholder' with dtype float
+	 [[Node: Placeholder = Placeholder[dtype=DT_FLOAT, shape=[], _device="/job:localhost/replica:0/task:0/cpu:0"]()]]
+
+Caused by op u'Placeholder', defined at:
+  File "./tools/train_net_mask.py", line 110, in <module>
+    network = get_network(args.network_name)
+  File "/Users/ximengsun/Desktop/EECS 542/Assignments/Final/542FinalProject/tools/../lib/networks/factory.py", line 30, in get_network
+    return networks.VGGnet_train()
+  File "/Users/ximengsun/Desktop/EECS 542/Assignments/Final/542FinalProject/tools/../lib/networks/VGGnet_train.py", line 14, in __init__
+    self.data = tf.placeholder(tf.float32, shape=[None, None, None, 4])
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/ops/array_ops.py", line 1502, in placeholder
+    name=name)
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/ops/gen_array_ops.py", line 2149, in _placeholder
+    name=name)
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/framework/op_def_library.py", line 763, in apply_op
+    op_def=op_def)
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/framework/ops.py", line 2327, in create_op
+    original_op=self._default_original_op, op_def=op_def)
+  File "/Users/ximengsun/Tensorflow/lib/python2.7/site-packages/tensorflow/python/framework/ops.py", line 1226, in __init__
+    self._traceback = _extract_stack()
+
+InvalidArgumentError (see above for traceback): You must feed a value for placeholder tensor 'Placeholder' with dtype float
+	 [[Node: Placeholder = Placeholder[dtype=DT_FLOAT, shape=[], _device="/job:localhost/replica:0/task:0/cpu:0"]()]]
+

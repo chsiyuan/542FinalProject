@@ -198,7 +198,7 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
                 print 'scale: ' +str(scale)
                 print 'fx:' +str(fx)
                 print 'fy:' +str(fy)
-            mask_gt_data[i,:,:] = cv2.resize(mask_gt_clip, None, fx=fx, fy=fy)
+            mask_gt_data[i,:,:] = np.round(cv2.resize(mask_gt_clip, None, fx=fx, fy=fy))
         else:
             mask_gt_data[i,:,:] = np.zeros((scale,scale))
 

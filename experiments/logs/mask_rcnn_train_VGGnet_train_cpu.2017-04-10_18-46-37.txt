@@ -1,0 +1,11 @@
++ echo Logging output to experiments/logs/mask_rcnn_train_VGGnet_train_cpu.2017-04-10_18-46-37.txt
+Logging output to experiments/logs/mask_rcnn_train_VGGnet_train_cpu.2017-04-10_18-46-37.txt
++ python ./tools/train_net_mask.py --device cpu --device_id 0 --weights data/pretrain_model/VGG_imagenet.npy --imdb coco_2014_train --iters 1 --cfg experiments/cfgs/faster_rcnn_end2end.yml --network VGGnet_train
+Traceback (most recent call last):
+  File "./tools/train_net_mask.py", line 13, in <module>
+    from fast_rcnn.train import get_training_roidb, train_net
+  File "/Users/ximengsun/Desktop/EECS 542/Assignments/Final/542FinalProject/tools/../lib/fast_rcnn/__init__.py", line 8, in <module>
+    from . import config
+  File "/Users/ximengsun/Desktop/EECS 542/Assignments/Final/542FinalProject/tools/../lib/fast_rcnn/config.py", line 24, in <module>
+    from easydict import EasyDict as edict
+ImportError: No module named easydict
