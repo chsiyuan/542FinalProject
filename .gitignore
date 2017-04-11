@@ -8,3 +8,5 @@ make.sh
 *.png
 *.json
 *.mat
+*.zip
+*.txt
