@@ -4,3 +4,9 @@
 make.sh
 *.npy
 *.pkl
+*.jpg
+*.png
+*.json
+*.mat
+*.zip
+*.txt
