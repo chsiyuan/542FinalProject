@@ -232,11 +232,11 @@ class SolverWrapper(object):
             #             options=run_options,
             #             run_metadata=run_metadata)
 
-            mask_gt_value, mask_weights_value, _ \
-            = sess.run([mask_gt, mask_weights, train_op],
-                        feed_dict=feed_dict,
-                        options=run_options,
-                        run_metadata=run_metadata)
+            # mask_gt_value, mask_weights_value, _ \
+            # = sess.run([mask_gt, mask_weights, train_op],
+            #             feed_dict=feed_dict,
+            #             options=run_options,
+            #             run_metadata=run_metadata)
 
             timer.toc()
 
@@ -246,17 +246,17 @@ class SolverWrapper(object):
                 trace_file.write(trace.generate_chrome_trace_format(show_memory=False))
                 trace_file.close()
 
-            # if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
-            if (iter+1) % (1) == 0:  
-                print 'mask_gt[0,:,:59]'
-                print type(mask_gt_value)
-                print mask_gt_value[0,:,:,59]
-                print 'mask_weights[0,:,:59]'
-                print mask_weights_value[0,:,:,59]
-                print 'mask_gt[0,:,:38]'
-                print mask_gt_value[0,:,:,38]
-                print 'mask_weights[0,:,:38]'
-                print mask_weights_value[0,:,:,38]
+            if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
+            # if (iter+1) % (1) == 0:  
+            #     print 'mask_gt[0,:,:59]'
+            #     print type(mask_gt_value)
+            #     print mask_gt_value[0,:,:,59]
+            #     print 'mask_weights[0,:,:59]'
+            #     print mask_weights_value[0,:,:,59]
+            #     print 'mask_gt[0,:,:38]'
+            #     print mask_gt_value[0,:,:,38]
+            #     print 'mask_weights[0,:,:38]'
+            #     print mask_weights_value[0,:,:,38]
 
                 # print 'cls_score_value: '
                 # print cls_score_value[0]
@@ -266,9 +266,9 @@ class SolverWrapper(object):
                 # print label_weights_value[0]
                 # print 'cross_entropy_all_value:'
                 # print cross_entropy_all_value[0]
-                # print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, loss_mask: %.4f, lr: %f'%\
-                # (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value + loss_mask_value, \
-                #     rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, loss_mask_value, lr.eval())
+                print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, loss_mask: %.4f, lr: %f'%\
+                (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value + loss_mask_value, \
+                    rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, loss_mask_value, lr.eval())
 
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
