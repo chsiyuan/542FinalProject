@@ -184,7 +184,7 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
                 print '_sample_roi'
                 print 'i: '+ str(i) +' labels[i]:' + str(labels[i])
                 print 'roi' +str(roi[0]) + ' ' +  str(roi[1]) + ' ' + str(roi[2]) + ' ' + str(roi[3])  
-            mask_gt_clip = mask_gt_keep[i, int(round(roi[0])) : int(round(roi[2]))+1, int(round(roi[1])) : int(round(roi[3]))+1]
+            mask_gt_clip = mask_gt_keep[i, int(round(roi[1])) : int(round(roi[3]))+1, int(round(roi[0])) : int(round(roi[2]))+1]
             if cfg.DEBUG:
                 print 'mask_gt_keep.shape[1]: ' +str(mask_gt_keep.shape[1])
                 print 'mask_gt_keep.shape[2]: ' + str(mask_gt_keep.shape[2])

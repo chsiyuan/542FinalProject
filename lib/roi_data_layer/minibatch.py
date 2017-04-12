@@ -152,7 +152,9 @@ def _get_image_blob(roidb, scale_inds):
     im_scales = []
     for i in xrange(num_images):
         im_bgr = cv2.imread(roidb[i]['image'])
-        #******************************
+        if cfg.DEBUG:
+	    print im_bgr.shape
+	#******************************
         #   Add deformed mask to input
         #******************************
         deformed_mask = cv2.imread(roidb[i]['deformed_mask'],0)
