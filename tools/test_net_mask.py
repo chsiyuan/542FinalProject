@@ -32,7 +32,16 @@ CLASSES = ('__background__',
 
 #CLASSES = ('__background__','person','bike','motorbike','car','bus')
 
-def vis_detections(im, class_name, dets, segs, seg_together, ax, thresh=0.5):
+def rand_hsl():
+    '''Generate a random hsl color.'''
+    h = random.uniform(0.02, 0.31) + random.choice([0, 1/3.0,2/3.0])
+    l = random.uniform(0.3, 0.8)
+    s = random.uniform(0.3, 0.8)
+
+    rgb = colorsys.hls_to_rgb(h, l, s)
+    return (int(rgb[0]*256), int(rgb[1]*256), int(rgb[2]*256))
+
+def vis_detections(im, im_mask, class_name, dets, segs, ax, thresh=0.5):
     """Draw detected bounding boxes."""
     inds = np.where(dets[:, -1] >= thresh)[0]
     if len(inds) == 0:
@@ -44,22 +53,29 @@ def vis_detections(im, class_name, dets, segs, seg_together, ax, thresh=0.5):
         seg = segs[i, :, :]
 
         # Recover the mask to the original size of bbox
+        bbox_round = round(bbox)
         seg_h = seg.shape[1]
         seg_w = seg.shape[0]
-        height = bbox[2]-bbox[0]
-        width  = bbox[3]-bbox[1]
+        height = bbox_round[3]-bbox_round[1]+1
+        width  = bbox_round[2]-bbox_round[0]+1
         fx = width/seg_w
         fy = height/seg_h
         seg_resize = cv2.resize(seg, None, fx=fx, fy=fy)
+        seg_resize = round(seg_resize)
 
         # Map the resized mask to the original image
-
+        rand_color = rand_hsl()
+        im_mask_temp = np.zeros(im.shape)
+        for i in range(3)
+            im_mask_temp[bbox_round[1]:bbox_round[3], bbox_round[0]:bbox_round[2], i] \
+            += (rand_color[i]*seg_resize)
+        im_mask += im_mask_temp
 
         ax.add_patch(
             plt.Rectangle((bbox[0], bbox[1]),
                           bbox[2] - bbox[0],
                           bbox[3] - bbox[1], fill=False,
-                          edgecolor='red', linewidth=3.5)
+                          edgecolor='blue', linewidth=2.5)
             )
         ax.text(bbox[0], bbox[1] - 2,
                 '{:s} {:.3f}'.format(class_name, score),
@@ -74,8 +90,9 @@ def vis_detections(im, class_name, dets, segs, seg_together, ax, thresh=0.5):
     plt.tight_layout()
     plt.draw()
 
+    return im_mask
 
-def test_single_frame(sess, net, image_name, mask, force_cpu):
+def test_single_frame(sess, net, image_name, mask, force_cpu, output_dir):
     """Detect object classes in an image using pre-computed object proposals."""
 
     #********************
@@ -83,7 +100,10 @@ def test_single_frame(sess, net, image_name, mask, force_cpu):
     #********************
     im_file = os.path.join(cfg.DATA_DIR, image_name)
     #im_file = os.path.join('/home/corgi/Lab/label/pos_frame/ACCV/training/000001/',image_name)
-    im = cv2.imread(im_file)
+    im_bgr = cv2.imread(im_file)
+    im = np.zeros((im_bgr.shape[0], im_bgr.shape[1], 4))
+    im[:,:,0:3] = im_bgr
+    im[:,:,3] = mask
 
     # Detect all object classes and regress object bounds
     timer = Timer()
@@ -95,8 +115,9 @@ def test_single_frame(sess, net, image_name, mask, force_cpu):
 
     # Visualize detections for each class
     im = im[:, :, (2, 1, 0)]
-    seg_together = np.zeros((im.shape[0],im.shape[1]))
+    im_mask = np.zeros(im.shape)
     fig, ax = plt.subplots(figsize=(12, 12))
+    ax.imshow(im, aspect='equal')
     CONF_THRESH = 0.8
     NMS_THRESH = 0.3
     for cls_ind, cls in enumerate(CLASSES[1:]):
@@ -110,9 +131,15 @@ def test_single_frame(sess, net, image_name, mask, force_cpu):
         dets = dets[keep, :]
         segs = cls_masks[keep, :, :]
         print ('After nms, {:d} object proposals').format(dets.shape[0])
-        seg_together = vis_detections(im, cls, dets, segs, seg_together, ax, thresh=CONF_THRESH)
-
-    return next_mask
+        im_mask = vis_detections(im, im_mask, cls, dets, segs, ax, thresh=CONF_THRESH)
+    plt.savefig(os.path.join(output_dir, 'box_'+image_name))
+    im2 = cv2.imread(os.path.join(output_dir,'box_'+image_name))
+    im2 += im_mask*0.5
+    im_mask_grey = cv2.cvtColor(im_mask, cv2.COLOR_RGB2GRAY)
+    im_mask_grey[np.where(im_mask_grey!=0)] = 255
+    cv2.imwrite(os.path.join(output_dir,'output_'+image_name), im2)
+    cv2.imwrite(os.path.join(output_dir,'mask_'+image_name), im_mask_grey)
+    return im_mask_grey
 
 def parse_args():
     """Parse input arguments."""
@@ -153,6 +180,9 @@ if __name__ == '__main__':
         os.makedirs(output_dir)
     print 'Output will be saved to `{:s}`'.format(output_dir)
 
+    #*******************
+    #  Need to change
+    #*******************
     input_dir = '../data/'
     if not os.path.exists(input_dir):
         raise IOError(('Error: Input not found.\n'))
@@ -178,9 +208,9 @@ if __name__ == '__main__':
     # load mask of first frame
     mask = cv2.imread('',0)
     for image in images: 
-        if not os.path.isdir(file):
-        print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-        print 'Segmentation for {}'.format(im_name)
-        next_mask = test_single_frame(sess, net, im_name, mask, force_cpu)
-        # To be implementeds
-        mask = mask_deformation(next_mask)
+        if not os.path.isdir(image):
+            print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+            print 'Segmentation for {}'.format(image)
+            next_mask = test_single_frame(sess, net, image, mask, force_cpu, output_dir)
+            # To be implementeds
+            mask = ndimage.binary_dilation(next_mask/255).astype(next_mask.dtype)

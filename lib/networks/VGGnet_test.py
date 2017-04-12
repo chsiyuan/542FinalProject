@@ -1,14 +1,14 @@
 import tensorflow as tf
 from networks.network import Network
 
-n_classes = 21
+n_classes = 81
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32] 
 
 class VGGnet_test(Network):
     def __init__(self, trainable=True):
         self.inputs = []
-        self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3])
+        self.data = tf.placeholder(tf.float32, shape=[None, None, None, 4])
         self.im_info = tf.placeholder(tf.float32, shape=[None, 3])
         self.keep_prob = tf.placeholder(tf.float32)
         self.layers = dict({'data':self.data, 'im_info':self.im_info})
@@ -62,3 +62,10 @@ class VGGnet_test(Network):
         (self.feed('fc7')
              .fc(n_classes*4, relu=False, name='bbox_pred'))
 
+        # New branch for segmentation mask
+        (self.feed('pool_5')
+             .conv(3, 3, 1024, 1, 1, name='conv6_1')
+             .conv(3, 3, 1024, 1, 1, name='conv6_2')
+             .conv(3, 3, 1024, 1, 1, name='conv6_3')
+             .upscore(2, 2, 256, name='up_1')
+             .conv(1, 1, n_classes, 1, 1, name='mask_out'))
