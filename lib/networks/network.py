@@ -289,6 +289,10 @@ class Network(object):
             return tf.nn.softmax(input,name=name)
 
     @layer
+    def sigmoid(self, input, name):
+        return tf.nn.sigmoid(input, name=name)
+
+    @layer
     def dropout(self, input, keep_prob, name):
         print name
 

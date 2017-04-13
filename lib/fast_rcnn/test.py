@@ -222,7 +222,20 @@ def im_detect(sess, net, im, boxes=None):
         trace_file.write(trace.generate_chrome_trace_format(show_memory=False))
         trace_file.close()
 
-    return scores, pred_boxes, mask_prob
+    score = np.amax(scores, axis=1)
+    label = np.argmax(scores, axis=1)
+    pred_box = np.zeros((pred_boxes.shape[0],4))
+    mask = np.zeros(mask_prob.shape[0:3])
+    for i in range(len(label)):
+        l = label[i]
+        pred_box[i,:] = pred_boxes[i,4*l:4*(l + 1)]
+        mask[i,:,:] = mask_prob[i,:,:,l]
+    if cfg.DEBUG:
+        print 'scores shape: '
+        print scores.shape
+        print 'mask shape: '
+        print mask.shape
+    return score, label, pred_box, mask
 
 
 def vis_detections(im, class_name, dets, thresh=0.8):

@@ -42,7 +42,7 @@ def rand_hsl():
     s = random.uniform(0.3, 0.8)
 
     rgb = colorsys.hls_to_rgb(h, l, s)
-    return (int(rgb[0]*256), int(rgb[1]*256), int(rgb[2]*256))
+    return (int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
 
 def vis_detections(im, im_mask, class_name, dets, segs, ax, thresh=0.5):
     """Draw detected bounding boxes."""
@@ -57,8 +57,8 @@ def vis_detections(im, im_mask, class_name, dets, segs, ax, thresh=0.5):
 
         # Recover the mask to the original size of bbox
         bbox_round = np.around(bbox).astype(int)
-        seg_h = seg.shape[1]
-        seg_w = seg.shape[0]
+        seg_h = (float)(seg.shape[1])
+        seg_w = (float)(seg.shape[0])
         height = bbox_round[3]-bbox_round[1]+1
         width  = bbox_round[2]-bbox_round[0]+1
         fx = width/seg_w
@@ -66,14 +66,17 @@ def vis_detections(im, im_mask, class_name, dets, segs, ax, thresh=0.5):
         if cfg.DEBUG:
             print bbox_round
             print seg.shape
+	    print fx
+	    print fy
         seg_resize = cv2.resize(seg, None, fx=fx, fy=fy)
-        seg_resize = np.around(seg_resize)
-
+        seg_resize = np.around(seg_resize).astype(im.dtype)
+	if cfg.DEBUG:
+	    print seg_resize.shape
         # Map the resized mask to the original image
         rand_color = rand_hsl()
-        im_mask_temp = np.zeros(im.shape)
+        im_mask_temp = np.zeros(im.shape).astype(im.dtype)
         for i in range(3):
-            im_mask_temp[bbox_round[1]:bbox_round[3], bbox_round[0]:bbox_round[2], i] \
+            im_mask_temp[bbox_round[1]:bbox_round[3]+1, bbox_round[0]:bbox_round[2]+1, i] \
             += (rand_color[i]*seg_resize)
         im_mask += im_mask_temp
 
@@ -104,7 +107,7 @@ def test_single_frame(sess, net, image_name, mask, force_cpu, output_dir):
     #********************
     # Need change here
     #********************
-    im_file = os.path.join(cfg.DATA_DIR, 'test/image/', image_name)
+    im_file = os.path.join(cfg.DATA_DIR, 'test/images/', image_name)
     #im_file = os.path.join('/home/corgi/Lab/label/pos_frame/ACCV/training/000001/',image_name)
     im_bgr = cv2.imread(im_file)
     im = np.zeros((im_bgr.shape[0], im_bgr.shape[1], 4))
@@ -114,36 +117,41 @@ def test_single_frame(sess, net, image_name, mask, force_cpu, output_dir):
     # Detect all object classes and regress object bounds
     timer = Timer()
     timer.tic()
-    scores, boxes, masks = im_detect(sess, net, im)
+    score, label, box, mask = im_detect(sess, net, im)
     timer.toc()
     print ('Detection took {:.3f}s for '
-           '{:d} object proposals').format(timer.total_time, boxes.shape[0])
+           '{:d} object proposals').format(timer.total_time, label.shape[0])
 
     # Visualize detections for each class
     im_rgb = im_bgr[:, :, (2, 1, 0)]
     im_mask = np.zeros(im_rgb.shape).astype(im_rgb.dtype)
     fig, ax = plt.subplots(figsize=(12, 12))
     # ax.imshow(im_rgb, aspect='equal')
-    CONF_THRESH = 0
+    CONF_THRESH = 0.8
     NMS_THRESH = 0.3
+
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
-        cls_boxes = boxes[:, 4*cls_ind:4*(cls_ind + 1)]
-        cls_scores = scores[:, cls_ind]
-        cls_masks = masks[:, :, :, cls_ind]
-        dets = np.hstack((cls_boxes,
-                          cls_scores[:, np.newaxis])).astype(np.float32)
+        i = np.where(label==cls_ind)[0]
+        cls_score = score[i]
+        cls_box = box[i, :]
+        cls_mask = mask[i, :, :]
+	if cfg.DEBUG:
+	    print 'i: '
+	    print i.shape
+	    print 'cls_score: '
+	    print cls_score
+	    print 'box.shape: '
+	    print box.shape
+	    print 'cls_box shape: '
+	    print cls_box.shape
+        dets = np.hstack((cls_box,
+                          cls_score[:, np.newaxis])).astype(np.float32)
         keep = nms(dets, NMS_THRESH, force_cpu)
         dets = dets[keep, :]
-        segs = cls_masks[keep, :, :]
+        segs = cls_mask[keep, :, :]
         print ('After nms, {:d} object proposals').format(dets.shape[0])
-        if cfg.DEBUG:
-            print type(im_mask)
-            print im_mask.shape
         im_mask = vis_detections(im_rgb, im_mask, cls, dets, segs, ax, thresh=CONF_THRESH)
-        if cfg.DEBUG:
-            print type(im_mask)
-            print im_mask.shape
     # plt.savefig(os.path.join(output_dir, 'box_'+image_name))
     #im2 = cv2.imread(os.path.join(output_dir,'box_'+image_name))
     im_rgb += im_mask/2
@@ -195,7 +203,7 @@ if __name__ == '__main__':
     #*******************
     #  Need to change
     #*******************
-    input_dir = '../data/test/image/'
+    input_dir = '../data/test/images/'
     if not os.path.exists(input_dir):
         raise IOError(('Error: Input not found.\n'))
         
@@ -217,7 +225,7 @@ if __name__ == '__main__':
     #     _, _= im_detect(sess, net, im)
 
     images = os.listdir(input_dir) 
-    deformed_mask_name = '../data/test/deformed_mask/deformation_train_000000001966.png'
+    deformed_mask_name = '../data/test/masks/deformation_train_000000000074.png'
     # load mask of first frame
     mask = cv2.imread(deformed_mask_name,0)
     for image in images: 

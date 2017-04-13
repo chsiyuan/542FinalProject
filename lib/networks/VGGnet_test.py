@@ -57,7 +57,7 @@ class VGGnet_test(Network):
              .fc(4096, name='fc6')
              .fc(4096, name='fc7')
              .fc(n_classes, relu=False, name='cls_score')
-             .softmax(name='cls_prob'))
+             .sigmoid(name='cls_prob'))
 
         (self.feed('fc7')
              .fc(n_classes*4, relu=False, name='bbox_pred'))
@@ -69,4 +69,4 @@ class VGGnet_test(Network):
              .conv(3, 3, 1024, 1, 1, name='conv6_3')
              .upscore(2, 2, 256, name='up_1')
              .conv(1, 1, n_classes, 1, 1, name='mask_out')
-             .softmax(name='mask_prob'))
+             .sigmoid(name='mask_prob'))
