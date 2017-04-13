@@ -42,7 +42,7 @@ exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
 time python ./tools/train_net_mask.py --device ${DEV} --device_id ${DEV_ID} \
-  --weights data/pretrain_model/VGG_imagenet.npy \
+  --weights data/pretrain_model/VGG16_faster_rcnn.npy \
   --imdb ${TRAIN_IMDB} \
   --iters ${ITERS} \
   --cfg experiments/cfgs/faster_rcnn_end2end.yml \
