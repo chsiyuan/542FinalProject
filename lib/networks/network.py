@@ -56,7 +56,6 @@ class Network(object):
                         except ValueError:
                             print "ignore "+key
                             if not ignore_missing:
-
                                 raise
 
     def feed(self, *args):

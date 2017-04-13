@@ -205,7 +205,7 @@ class SolverWrapper(object):
             # get one batch
             # bgr+deformed mask, shape[h,w,4]
             blobs = data_layer.forward()
-
+            self.snapshot(sess, iter)
             # Make one SGD update
             feed_dict={self.net.data: blobs['data'], self.net.im_info: blobs['im_info'], self.net.keep_prob: 0.5, \
                            self.net.gt_boxes: blobs['gt_boxes'], self.net.gt_masks: blobs['gt_masks']}
@@ -272,12 +272,12 @@ class SolverWrapper(object):
 
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
-            if (iter+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
+            if (iter+1) % čfg.TRAIN.SNAPSHOT_ITERS == 0:
                 last_snapshot_iter = iter
-                self.snapshot(sess, iter)
+                # self.snapshot(sess, iter)
 
         if last_snapshot_iter != iter:
-            self.snapshot(sess, iter)
+            # self.snapshot(sess, iter)
 
 def get_training_roidb(imdb):
     """Returns a roidb (Region of Interest database) for use in training."""
