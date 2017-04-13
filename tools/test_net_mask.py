@@ -42,7 +42,7 @@ def rand_hsl():
     s = random.uniform(0.3, 0.8)
 
     rgb = colorsys.hls_to_rgb(h, l, s)
-    return (int(rgb[0]*256), int(rgb[1]*256), int(rgb[2]*256))
+    return (int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
 
 def vis_detections(im, im_mask, class_name, dets, segs, ax, thresh=0.5):
     """Draw detected bounding boxes."""
@@ -57,8 +57,8 @@ def vis_detections(im, im_mask, class_name, dets, segs, ax, thresh=0.5):
 
         # Recover the mask to the original size of bbox
         bbox_round = np.around(bbox).astype(int)
-        seg_h = seg.shape[1]
-        seg_w = seg.shape[0]
+        seg_h = (float)(seg.shape[1])
+        seg_w = (float)(seg.shape[0])
         height = bbox_round[3]-bbox_round[1]+1
         width  = bbox_round[2]-bbox_round[0]+1
         fx = width/seg_w
@@ -66,14 +66,17 @@ def vis_detections(im, im_mask, class_name, dets, segs, ax, thresh=0.5):
         if cfg.DEBUG:
             print bbox_round
             print seg.shape
+	    print fx
+	    print fy
         seg_resize = cv2.resize(seg, None, fx=fx, fy=fy)
-        seg_resize = np.around(seg_resize)
-
+        seg_resize = np.around(seg_resize).astype(im.dtype)
+	if cfg.DEBUG:
+	    print seg_resize.shape
         # Map the resized mask to the original image
         rand_color = rand_hsl()
-        im_mask_temp = np.zeros(im.shape)
+        im_mask_temp = np.zeros(im.shape).astype(im.dtype)
         for i in range(3):
-            im_mask_temp[bbox_round[1]:bbox_round[3], bbox_round[0]:bbox_round[2], i] \
+            im_mask_temp[bbox_round[1]:bbox_round[3]+1, bbox_round[0]:bbox_round[2]+1, i] \
             += (rand_color[i]*seg_resize)
         im_mask += im_mask_temp
 
@@ -124,15 +127,24 @@ def test_single_frame(sess, net, image_name, mask, force_cpu, output_dir):
     im_mask = np.zeros(im_rgb.shape).astype(im_rgb.dtype)
     fig, ax = plt.subplots(figsize=(12, 12))
     # ax.imshow(im_rgb, aspect='equal')
-    CONF_THRESH = 0.5
+    CONF_THRESH = 0.8
     NMS_THRESH = 0.3
 
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
-        i = np.where(label==cls_ind)
-        cls_score = score(i)
-        cls_box = boxes[i, :]
+        i = np.where(label==cls_ind)[0]
+        cls_score = score[i]
+        cls_box = box[i, :]
         cls_mask = mask[i, :, :]
+	if cfg.DEBUG:
+	    print 'i: '
+	    print i.shape
+	    print 'cls_score: '
+	    print cls_score
+	    print 'box.shape: '
+	    print box.shape
+	    print 'cls_box shape: '
+	    print cls_box.shape
         dets = np.hstack((cls_box,
                           cls_score[:, np.newaxis])).astype(np.float32)
         keep = nms(dets, NMS_THRESH, force_cpu)

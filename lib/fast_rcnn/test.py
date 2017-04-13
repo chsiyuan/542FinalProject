@@ -231,10 +231,10 @@ def im_detect(sess, net, im, boxes=None):
         pred_box[i,:] = pred_boxes[i,4*l:4*(l + 1)]
         mask[i,:,:] = mask_prob[i,:,:,l]
     if cfg.DEBUG:
-        print 'pred_box shape: '
-        print label.shape()
+        print 'scores shape: '
+        print scores.shape
         print 'mask shape: '
-        print mask.shape()
+        print mask.shape
     return score, label, pred_box, mask
 
 
