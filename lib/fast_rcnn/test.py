@@ -224,7 +224,7 @@ def im_detect(sess, net, im, boxes=None):
 
     score = np.amax(scores, axis=1)
     label = np.argmax(scores, axis=1)
-    pred_box = np.zeros(pred_boxes.shape[0],4)
+    pred_box = np.zeros((pred_boxes.shape[0],4))
     mask = np.zeros(mask_prob.shape[0:3])
     for i in range(len(label)):
         l = label[i]
