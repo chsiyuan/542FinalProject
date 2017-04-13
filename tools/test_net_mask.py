@@ -114,36 +114,32 @@ def test_single_frame(sess, net, image_name, mask, force_cpu, output_dir):
     # Detect all object classes and regress object bounds
     timer = Timer()
     timer.tic()
-    scores, boxes, masks = im_detect(sess, net, im)
+    score, label, box, mask = im_detect(sess, net, im)
     timer.toc()
     print ('Detection took {:.3f}s for '
-           '{:d} object proposals').format(timer.total_time, boxes.shape[0])
+           '{:d} object proposals').format(timer.total_time, label.shape[0])
 
     # Visualize detections for each class
     im_rgb = im_bgr[:, :, (2, 1, 0)]
     im_mask = np.zeros(im_rgb.shape).astype(im_rgb.dtype)
     fig, ax = plt.subplots(figsize=(12, 12))
     # ax.imshow(im_rgb, aspect='equal')
-    CONF_THRESH = 0
+    CONF_THRESH = 0.5
     NMS_THRESH = 0.3
+
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
-        cls_boxes = boxes[:, 4*cls_ind:4*(cls_ind + 1)]
-        cls_scores = scores[:, cls_ind]
-        cls_masks = masks[:, :, :, cls_ind]
-        dets = np.hstack((cls_boxes,
-                          cls_scores[:, np.newaxis])).astype(np.float32)
+        i = np.where(label==cls_ind)
+        cls_score = score(i)
+        cls_box = boxes[i, :]
+        cls_mask = mask[i, :, :]
+        dets = np.hstack((cls_box,
+                          cls_score[:, np.newaxis])).astype(np.float32)
         keep = nms(dets, NMS_THRESH, force_cpu)
         dets = dets[keep, :]
-        segs = cls_masks[keep, :, :]
+        segs = cls_mask[keep, :, :]
         print ('After nms, {:d} object proposals').format(dets.shape[0])
-        if cfg.DEBUG:
-            print type(im_mask)
-            print im_mask.shape
         im_mask = vis_detections(im_rgb, im_mask, cls, dets, segs, ax, thresh=CONF_THRESH)
-        if cfg.DEBUG:
-            print type(im_mask)
-            print im_mask.shape
     # plt.savefig(os.path.join(output_dir, 'box_'+image_name))
     #im2 = cv2.imread(os.path.join(output_dir,'box_'+image_name))
     im_rgb += im_mask/2
