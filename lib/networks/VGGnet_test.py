@@ -68,4 +68,5 @@ class VGGnet_test(Network):
              .conv(3, 3, 1024, 1, 1, name='conv6_2')
              .conv(3, 3, 1024, 1, 1, name='conv6_3')
              .upscore(2, 2, 256, name='up_1')
-             .conv(1, 1, n_classes, 1, 1, name='mask_out'))
+             .conv(1, 1, n_classes, 1, 1, name='mask_out')
+             .softmax(name='mask_prob'))

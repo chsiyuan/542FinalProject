@@ -175,7 +175,7 @@ def im_detect(sess, net, im, boxes=None):
         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
         run_metadata = tf.RunMetadata()
 
-    cls_score, cls_prob, bbox_pred, rois, mask_out = sess.run([net.get_output('cls_score'), net.get_output('cls_prob'), net.get_output('bbox_pred'),net.get_output('rois'), net.get_output('mask_out')],
+    cls_score, cls_prob, bbox_pred, rois, mask_prob = sess.run([net.get_output('cls_score'), net.get_output('cls_prob'), net.get_output('bbox_pred'),net.get_output('rois'), net.get_output('mask_prob')],
                                                     feed_dict=feed_dict,
                                                     options=run_options,
                                                     run_metadata=run_metadata)
@@ -196,6 +196,15 @@ def im_detect(sess, net, im, boxes=None):
     if cfg.TEST.BBOX_REG:
         # Apply bounding-box regression deltas
         box_deltas = bbox_pred
+        if cfg.DEBUG:
+            print 'box_delta:'
+            print box_deltas[0,:]
+            print 'cls_prob'
+            print cls_prob[0,:]
+            print 'boxes:'
+            print boxes[0]
+            print 'mask'
+            print mask_prob[0,:,:,1]
         pred_boxes = bbox_transform_inv(boxes, box_deltas)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
     else:
@@ -213,7 +222,7 @@ def im_detect(sess, net, im, boxes=None):
         trace_file.write(trace.generate_chrome_trace_format(show_memory=False))
         trace_file.close()
 
-    return scores, pred_boxes, mask_out
+    return scores, pred_boxes, mask_prob
 
 
 def vis_detections(im, class_name, dets, thresh=0.8):
