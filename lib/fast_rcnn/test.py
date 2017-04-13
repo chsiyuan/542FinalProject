@@ -224,8 +224,17 @@ def im_detect(sess, net, im, boxes=None):
 
     score = np.amax(scores, axis=1)
     label = np.argmax(scores, axis=1)
-    pred_box = pred_boxes[:,4*label:4*(label + 1)]
-    mask = mask_prob[:,:,:,label]
+    pred_box = np.zeros(pred_boxes.shape[0],4)
+    mask = np.zeros(mask_prob.shape[0:3])
+    for i in range(len(label)):
+        l = label[i]
+        pred_box[i,:] = pred_boxes[i,4*l:4*(l + 1)]
+        mask[i,:,:] = mask_prob[i,:,:,l]
+    if cfg.DEBUG:
+        print 'pred_box shape: '
+        print label.shape()
+        print 'mask shape: '
+        print mask.shape()
     return score, label, pred_box, mask
 
 

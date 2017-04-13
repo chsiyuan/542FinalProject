@@ -104,7 +104,7 @@ def test_single_frame(sess, net, image_name, mask, force_cpu, output_dir):
     #********************
     # Need change here
     #********************
-    im_file = os.path.join(cfg.DATA_DIR, 'test/image/', image_name)
+    im_file = os.path.join(cfg.DATA_DIR, 'test/images/', image_name)
     #im_file = os.path.join('/home/corgi/Lab/label/pos_frame/ACCV/training/000001/',image_name)
     im_bgr = cv2.imread(im_file)
     im = np.zeros((im_bgr.shape[0], im_bgr.shape[1], 4))
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     #*******************
     #  Need to change
     #*******************
-    input_dir = '../data/test/image/'
+    input_dir = '../data/test/images/'
     if not os.path.exists(input_dir):
         raise IOError(('Error: Input not found.\n'))
         
@@ -213,7 +213,7 @@ if __name__ == '__main__':
     #     _, _= im_detect(sess, net, im)
 
     images = os.listdir(input_dir) 
-    deformed_mask_name = '../data/test/deformed_mask/deformation_train_000000001966.png'
+    deformed_mask_name = '../data/test/masks/deformation_train_000000000074.png'
     # load mask of first frame
     mask = cv2.imread(deformed_mask_name,0)
     for image in images: 
