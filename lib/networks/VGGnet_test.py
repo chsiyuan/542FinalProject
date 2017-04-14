@@ -57,8 +57,8 @@ class VGGnet_test(Network):
              .conv(3, 3, 1024, 1, 1, name='conv6_1')
              .conv(3, 3, 1024, 1, 1, name='conv6_2')
              .conv(3, 3, 1024, 1, 1, name='conv6_3')
-             .fc(4096, name='fc6')
-             .fc(4096, name='fc7')
+             .fc(1024, name='fc6')
+             .fc(1024, name='fc7')
              .fc(n_classes, relu=False, name='cls_score')
              .sigmoid(name='cls_prob'))
 
