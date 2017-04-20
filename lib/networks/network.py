@@ -91,6 +91,18 @@ class Network(object):
     def validate_padding(self, padding):
         assert padding in ('SAME', 'VALID')
 
+    def variable_summaries(var):
+        """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
+        with tf.name_scope('summaries'):
+            mean = tf.reduce_mean(var)
+            tf.summary.scalar('mean', mean)
+            with tf.name_scope('stddev'):
+                stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+            tf.summary.scalar('stddev', stddev)
+            tf.summary.scalar('max', tf.reduce_max(var))
+            tf.summary.scalar('min', tf.reduce_min(var))
+            tf.summary.histogram('histogram', var)
+
     @layer
     def conv(self, input, k_h, k_w, c_o, s_h, s_w, name, relu=True, padding=DEFAULT_PADDING, group=1, trainable=True):
         
@@ -110,6 +122,9 @@ class Network(object):
             init_biases = tf.constant_initializer(0.0)
             kernel = self.make_var('weights', [k_h, k_w, c_i/group, c_o], init_weights, trainable)
             biases = self.make_var('biases', [c_o], init_biases, trainable)
+
+            variable_summaries(kernel)
+            variable_summaries(biases)
 
             if group==1:
                 conv = convolve(input, kernel)
@@ -277,6 +292,9 @@ class Network(object):
             weights = self.make_var('weights', [dim, num_out], init_weights, trainable)
             biases = self.make_var('biases', [num_out], init_biases, trainable)
 
+            variable_summaries(weights)
+            variable_summaries(biases)
+
             op = tf.nn.relu_layer if relu else tf.nn.xw_plus_b
             fc = op(feed_in, weights, biases, name=scope.name)
             return fc
@@ -313,8 +331,6 @@ class Network(object):
             w = in_shape[2] * 2
             batch_size = tf.shape(input)[0]
             out_shape = tf.stack([batch_size, h, w, c_out])
-            print 'batch_size'
-            print batch_size
 
             # get deconv kernel
             kernel_size = [ksize, ksize, c_out, c_in]
@@ -322,6 +338,8 @@ class Network(object):
             # get variable
             init_weights = tf.truncated_normal_initializer(0.0, stddev=0.01)
             kernel = self.make_var('up_kernel', kernel_size, init_weights, trainable)
+            
+            variable_summaries(kernel)
 
             output = tf.nn.conv2d_transpose(input, kernel, out_shape, strides=strides, padding='SAME', data_format='NHWC')
 

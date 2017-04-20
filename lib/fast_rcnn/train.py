@@ -177,14 +177,18 @@ class SolverWrapper(object):
         mask_gt = tf.reshape(self.net.get_output('roi-data')[5],[-1,mask_shape[1],mask_shape[2],num_classes])
         mask_weights = tf.reshape(self.net.get_output('roi-data')[7],[-1,mask_shape[1],mask_shape[2],num_classes])
         loss_mask_all = tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(logits=mask_out, labels=mask_gt), mask_weights)
-        print mask_out.get_shape().as_list()
-        print mask_gt.get_shape().as_list()
-        print loss_mask_all.get_shape().as_list()
+        #print mask_out.get_shape().as_list()
+        #print mask_gt.get_shape().as_list()
+        #print loss_mask_all.get_shape().as_list()
         loss_mask = tf.reduce_mean(tf.reduce_sum(loss_mask_all, 3))
 
         l2_loss = cfg.TRAIN.WEIGHT_DECAY * tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
         # final loss
         loss = rpn_cross_entropy + rpn_loss_box + cross_entropy + loss_box + loss_mask + l2_loss
+
+        # Summary
+        merged_summary = tf.summary.merge_all()
+        train_writer = tf.summary.FileWriter('./experiments/summary', sess.graph)
 
         # optimizer and learning rate
         global_step = tf.Variable(0, trainable=False)
@@ -220,11 +224,14 @@ class SolverWrapper(object):
             timer.tic()
 
             rpn_loss_cls_value, rpn_loss_box_value, \
-            loss_cls_value, loss_box_value, loss_mask_value, _ \
-            = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, loss_mask, train_op],
+            loss_cls_value, loss_box_value, loss_mask_value, summary, _ \
+            = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, loss_mask, merged_summary, train_op],
                         feed_dict=feed_dict,
                         options=run_options,
                         run_metadata=run_metadata)
+
+            # write summary to log file
+            train_writer.add_summary(summary, iter)
 
             # cls_score_value, labels_value, \
             # label_weights_value, cross_entropy_all_value, _ \
@@ -248,25 +255,6 @@ class SolverWrapper(object):
                 trace_file.close()
 
             if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
-            # if (iter+1) % (1) == 0:  
-            #     print 'mask_gt[0,:,:59]'
-            #     print type(mask_gt_value)
-            #     print mask_gt_value[0,:,:,59]
-            #     print 'mask_weights[0,:,:59]'
-            #     print mask_weights_value[0,:,:,59]
-            #     print 'mask_gt[0,:,:38]'
-            #     print mask_gt_value[0,:,:,38]
-            #     print 'mask_weights[0,:,:38]'
-            #     print mask_weights_value[0,:,:,38]
-
-                # print 'cls_score_value: '
-                # print cls_score_value[0]
-                # print 'labels_value:'
-                # print labels_value[0]
-                # print 'label_weights_value:'
-                # print label_weights_value[0]
-                # print 'cross_entropy_all_value:'
-                # print cross_entropy_all_value[0]
                 print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, loss_mask: %.4f, lr: %f'%\
                 (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value + loss_mask_value, \
                     rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, loss_mask_value, lr.eval())
