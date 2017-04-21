@@ -29,7 +29,7 @@ case $DATASET in
     TRAIN_IMDB="coco_2014_train"
     TEST_IMDB="coco_2014_minival"
     PT_DIR="coco"
-    ITERS=1
+    ITERS=20
     ;;
   *)
     echo "No dataset given"
@@ -42,7 +42,7 @@ exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
 time python ./tools/train_net_mask.py --device ${DEV} --device_id ${DEV_ID} \
-  --weights data/pretrain_model/VGG16_faster_rcnn.npy \
+  --weights data/pretrain_model/VGG16_faster_rcnn2.npy \
   --imdb ${TRAIN_IMDB} \
   --iters ${ITERS} \
   --cfg experiments/cfgs/faster_rcnn_end2end.yml \
