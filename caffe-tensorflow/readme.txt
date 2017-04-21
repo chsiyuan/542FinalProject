@@ -1,7 +1,7 @@
 Only for converting .caffemodle to .npy:
 
 main script: convert.py in the root dir 
-usage example: python convert.py def_path examples/test.prototxtt --caffemodel examples/VGG16.caffemodel --code-output-path ./VGG16.npy -p test(train or test)
+usage example: python convert.py def_path examples/test.prototxt --caffemodel examples/VGG16.caffemodel --data-output-path ./VGG16.npy -p test(train or test)
 
 sample prototxt: ./examples/test.prototxt
 
