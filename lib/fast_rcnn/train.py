@@ -53,8 +53,9 @@ class SolverWrapper(object):
         """
         net = self.net
 
-        if cfg.TRAIN.BBOX_REG and net.layers.has_key('bbox_pred'):
-            # save original values
+       # if cfg.TRAIN.BBOX_REG and net.layers.has_key('bbox_pred'):
+        if False:  
+	  # save original values
             with tf.variable_scope('bbox_pred', reuse=True):
                 weights = tf.get_variable("weights")
                 biases = tf.get_variable("biases")
@@ -79,8 +80,9 @@ class SolverWrapper(object):
         self.saver.save(sess, filename)
         print 'Wrote snapshot to: {:s}'.format(filename)
 
-        if cfg.TRAIN.BBOX_REG and net.layers.has_key('bbox_pred'):
-            with tf.variable_scope('bbox_pred', reuse=True):
+       # if cfg.TRAIN.BBOX_REG and net.layers.has_key('bbox_pred'):
+        if False:
+	    with tf.variable_scope('bbox_pred', reuse=True):
                 # restore net to original state
                 sess.run(net.bbox_weights_assign, feed_dict={net.bbox_weights: orig_0})
                 sess.run(net.bbox_bias_assign, feed_dict={net.bbox_biases: orig_1})
