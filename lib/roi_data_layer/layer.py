@@ -73,6 +73,10 @@ class RoIDataLayer(object):
         """
         db_inds = self._get_next_minibatch_inds()
         minibatch_db = [self._roidb[i] for i in db_inds]
+        if cfg.TRACE:
+            print '=======get next minibatch========'
+            print 'db_inds: %d'%db_inds
+            print 'minibatch_db[0][image]: ' + minibatch_db[0]['image']
         if cfg.DEBUG:
             print 'ROIDataLayer: _get_next_minibatch:'
             print 'db_inds:'

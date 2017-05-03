@@ -206,4 +206,20 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
     bbox_targets, bbox_inside_weights, labels, label_weights, mask_gt, mask_weights = \
         _get_bbox_regression_labels(bbox_target_data, labels_data, mask_gt_data, num_classes)
 
+    if cfg.TRACE:
+        print '========sample rois========'
+        print 'rois: '
+        print rois[0:5,:]
+        print 'labels: '
+        print labels[0:5,:]
+        print 'label_weights: '
+        print label_weights[0:5,:]
+        print 'bbox_targets: '
+        print bbox_targets[0:5,:]
+        print 'mask_weights of the first roi'
+        print mask_weights[0,:,:,labels[0]]
+        print 'save mask_gt'
+        cv2.imwrite('../experiments/mask_gt.png',mask_gt[0,:,:,labels[0]])
+
+
     return labels, rois, bbox_targets, bbox_inside_weights, mask_gt, label_weights, mask_weights

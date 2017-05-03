@@ -82,7 +82,7 @@ class SolverWrapper(object):
 
        # if cfg.TRAIN.BBOX_REG and net.layers.has_key('bbox_pred'):
         if False:
-	    with tf.variable_scope('bbox_pred', reuse=True):
+	        with tf.variable_scope('bbox_pred', reuse=True):
                 # restore net to original state
                 sess.run(net.bbox_weights_assign, feed_dict={net.bbox_weights: orig_0})
                 sess.run(net.bbox_bias_assign, feed_dict={net.bbox_biases: orig_1})
@@ -160,6 +160,7 @@ class SolverWrapper(object):
         cls_score = self.net.get_output('cls_score')
         labels = tf.reshape(self.net.get_output('roi-data')[1],[-1, num_classes])
         label_weights = tf.reshape(self.net.get_output('roi-data')[6],[-1, num_classes])
+
         # cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
         cross_entropy_all = tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_score, labels=labels), label_weights)
         cross_entropy = tf.reduce_mean(tf.reduce_sum(cross_entropy_all, 1))
@@ -184,9 +185,9 @@ class SolverWrapper(object):
         #print loss_mask_all.get_shape().as_list()
         loss_mask = tf.reduce_mean(tf.reduce_sum(loss_mask_all, 3))
 
-        l2_loss = cfg.TRAIN.WEIGHT_DECAY * tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
+        # l2_loss = cfg.TRAIN.WEIGHT_DECAY * tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
         # final loss
-        loss = rpn_cross_entropy + rpn_loss_box + cross_entropy + loss_box + loss_mask + l2_loss
+        loss = rpn_cross_entropy + rpn_loss_box + cross_entropy + loss_box + loss_mask #+ l2_loss
 
         # Summary
         merged_summary = tf.summary.merge_all()
@@ -235,12 +236,22 @@ class SolverWrapper(object):
             # write summary to log file
             train_writer.add_summary(summary, iter)
 
-            # cls_score_value, labels_value, \
-            # label_weights_value, cross_entropy_all_value, _ \
-            # = sess.run([cls_score, labels, label_weights, cross_entropy_all, train_op],
-            #             feed_dict=feed_dict,
-            #             options=run_options,
-            #             run_metadata=run_metadata)
+            if cfg.TRACE:
+                print '======calculate loss======'
+                cls_score_value, labels_value, \
+                label_weights_value, cross_entropy_all_value, _ \
+                = sess.run([cls_score, labels, label_weights, cross_entropy_all, train_op],
+                            feed_dict=feed_dict,
+                            options=run_options,
+                            run_metadata=run_metadata)
+                print 'cls_score: '
+                print cls_score_value[0:5]
+                print 'labels: '
+                print labels_value[0:5,:]
+                print 'label_weights_value: '
+                print label_weights_value[0:5,:]
+                print 'cross_entropy_all_value: '
+                print cross_entropy_all_value[0:5,:]
 
             # mask_gt_value, mask_weights_value, _ \
             # = sess.run([mask_gt, mask_weights, train_op],

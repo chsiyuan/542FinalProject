@@ -58,6 +58,16 @@ def get_minibatch(roidb, num_classes):
                               interpolation=cv2.INTER_LINEAR)
         blobs['gt_masks'] = gt_masks
 
+        if cfg.TRACE:
+            print '=======get minibatch (blob)========'
+            print 'blobs[gt_boxes]: '
+            print blobs['gt_boxes']
+            print 'blobs[im_info]: '
+            print blobs['im_info']
+            print 'save blobs[gt_masks]'
+            cv2.imwrite('../experiments/gt_mask.png',blobs['gt_masks'][0,:,:])
+
+
 
     else: # not using RPN
         # Now, build the region of interest and label blobs

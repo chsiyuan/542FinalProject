@@ -29,6 +29,7 @@ __C = edict()
 cfg = __C
 
 __C.DEBUG = False
+__C.TRACE = True
 
 #
 # Training options
