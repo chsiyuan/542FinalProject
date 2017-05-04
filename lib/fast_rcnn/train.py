@@ -82,12 +82,12 @@ class SolverWrapper(object):
             #save ckpt
             filename2 = (cfg.TRAIN.SNAPSHOT_PREFIX + infix +
                         '_iter_{:d}'.format(iter+1) + '_processed' + '.ckpt')
-            filename2 = os.path.join(self.output_dir, filename)
-            self.saver.save(sess, filename)
+            filename2 = os.path.join(self.output_dir, filename2)
+            self.saver.save(sess, filename2)
             print 'Wrote snapshot to: {:s}'.format(filename)
 
             # restore net to original state
-	        with tf.variable_scope('bbox_pred', reuse=True):
+	    with tf.variable_scope('bbox_pred', reuse=True):
                 sess.run(net.bbox_weights_assign, feed_dict={net.bbox_weights: orig_0})
                 sess.run(net.bbox_bias_assign, feed_dict={net.bbox_biases: orig_1})
 
