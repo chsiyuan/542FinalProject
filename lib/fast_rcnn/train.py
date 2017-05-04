@@ -53,21 +53,6 @@ class SolverWrapper(object):
         """
         net = self.net
 
-       # if cfg.TRAIN.BBOX_REG and net.layers.has_key('bbox_pred'):
-        if False:  
-	  # save original values
-            with tf.variable_scope('bbox_pred', reuse=True):
-                weights = tf.get_variable("weights")
-                biases = tf.get_variable("biases")
-
-            orig_0 = weights.eval()
-            orig_1 = biases.eval()
-
-            # scale and shift with bbox reg unnormalization; then save snapshot
-            weights_shape = weights.get_shape().as_list()
-            sess.run(net.bbox_weights_assign, feed_dict={net.bbox_weights: orig_0 * np.tile(self.bbox_stds, (weights_shape[0], 1))})
-            sess.run(net.bbox_bias_assign, feed_dict={net.bbox_biases: orig_1 * self.bbox_stds + self.bbox_means})
-
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
@@ -80,10 +65,29 @@ class SolverWrapper(object):
         self.saver.save(sess, filename)
         print 'Wrote snapshot to: {:s}'.format(filename)
 
-       # if cfg.TRAIN.BBOX_REG and net.layers.has_key('bbox_pred'):
-        if False:
-	    with tf.variable_scope('bbox_pred', reuse=True):
-                # restore net to original state
+        if cfg.TRAIN.BBOX_REG and net.layers.has_key('bbox_pred'):
+	        # save original values
+            with tf.variable_scope('bbox_pred', reuse=True):
+                weights = tf.get_variable("weights")
+                biases = tf.get_variable("biases")
+
+            orig_0 = weights.eval()
+            orig_1 = biases.eval()
+
+            # scale and shift with bbox reg unnormalization; then save snapshot
+            weights_shape = weights.get_shape().as_list()
+            sess.run(net.bbox_weights_assign, feed_dict={net.bbox_weights: orig_0 * np.tile(self.bbox_stds, (weights_shape[0], 1))})
+            sess.run(net.bbox_bias_assign, feed_dict={net.bbox_biases: orig_1 * self.bbox_stds + self.bbox_means})
+
+            #save ckpt
+            filename2 = (cfg.TRAIN.SNAPSHOT_PREFIX + infix +
+                        '_iter_{:d}'.format(iter+1) + '_processed' + '.ckpt')
+            filename2 = os.path.join(self.output_dir, filename)
+            self.saver.save(sess, filename)
+            print 'Wrote snapshot to: {:s}'.format(filename)
+
+            # restore net to original state
+	        with tf.variable_scope('bbox_pred', reuse=True):
                 sess.run(net.bbox_weights_assign, feed_dict={net.bbox_weights: orig_0})
                 sess.run(net.bbox_bias_assign, feed_dict={net.bbox_biases: orig_1})
 
