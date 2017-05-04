@@ -53,13 +53,15 @@ def prepare_roidb(imdb):
         nonzero_inds = np.where(max_overlaps > 0)[0]
         assert all(max_classes[nonzero_inds] != 0)
 
-        if cfg.TRACE && i==0:
+        if cfg.TRACE and i==0:
             print 'image: ' + roidb[i]['image']
             print 'width: %d'% roidb[i]['width']
             print 'height: %d'% roidb[i]['height']
             print 'deformed_mask: ' + roidb[i]['deformed_mask']
-            print 'max_classes: %d'% roidb[i]['max_classes'] 
-            print 'max_overlaps: %f'% roidb[i]['max_overlaps']
+            print 'max_classes: '
+	    print roidb[i]['max_classes'] 
+            print 'max_overlaps: '
+	    print roidb[i]['max_overlaps']
 
 def add_bbox_regression_targets(roidb):
     """Add information needed to train bounding-box regressors."""
@@ -122,9 +124,9 @@ def add_bbox_regression_targets(roidb):
                 roidb[im_i]['bbox_targets'][cls_inds, 1:] -= means[cls, :]
                 roidb[im_i]['bbox_targets'][cls_inds, 1:] /= stds[cls, :]
 
-                if cfg.TRACE && im_i==0:
-                    print 'bbox_targets: '
-                    print roidb[im_i]['bbox_targets'][cls_inds, 1:]
+            if cfg.TRACE and im_i==0:
+                print 'bbox_targets: '
+                print roidb[im_i]['bbox_targets']
                     
     else:
         print "NOT normalizing targets"
