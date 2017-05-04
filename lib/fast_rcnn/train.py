@@ -185,7 +185,7 @@ class SolverWrapper(object):
         loss_mask = tf.reduce_mean(tf.reduce_sum(loss_mask_all, 3))
 
         l2_loss = cfg.TRAIN.WEIGHT_DECAY * tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
-        # final loss
+	 # final loss
         loss = rpn_cross_entropy + rpn_loss_box + cross_entropy + loss_box + loss_mask + l2_loss
 
         # Summary
