@@ -160,6 +160,7 @@ class SolverWrapper(object):
         cls_score = self.net.get_output('cls_score')
         labels = tf.reshape(self.net.get_output('roi-data')[1],[-1, num_classes])
         label_weights = tf.reshape(self.net.get_output('roi-data')[6],[-1, num_classes])
+
         # cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
         cross_entropy_all = tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_score, labels=labels), label_weights)
         cross_entropy = tf.reduce_mean(tf.reduce_sum(cross_entropy_all, 1))
@@ -185,7 +186,7 @@ class SolverWrapper(object):
         loss_mask = tf.reduce_mean(tf.reduce_sum(loss_mask_all, 3))
 
         l2_loss = cfg.TRAIN.WEIGHT_DECAY * tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
-	 # final loss
+        # final loss
         loss = rpn_cross_entropy + rpn_loss_box + cross_entropy + loss_box + loss_mask + l2_loss
 
         # Summary
@@ -199,7 +200,7 @@ class SolverWrapper(object):
         momentum = cfg.TRAIN.MOMENTUM
         train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss, global_step=global_step)
 
-        # iintialize variables
+        # intialize variables
         sess.run(tf.global_variables_initializer())
         if self.pretrained_model is not None:
             print ('Loading pretrained model '
@@ -235,12 +236,30 @@ class SolverWrapper(object):
             # write summary to log file
             train_writer.add_summary(summary, iter)
 
-            # cls_score_value, labels_value, \
-            # label_weights_value, cross_entropy_all_value, _ \
-            # = sess.run([cls_score, labels, label_weights, cross_entropy_all, train_op],
-            #             feed_dict=feed_dict,
-            #             options=run_options,
-            #             run_metadata=run_metadata)
+            if cfg.TRACE:
+                print '======calculate loss======'
+                cls_score_value, labels_value, \
+                label_weights_value, cross_entropy_all_value, _ \
+                = sess.run([cls_score, labels, label_weights, cross_entropy_all, train_op],
+                            feed_dict=feed_dict,
+                            options=run_options,
+                            run_metadata=run_metadata)
+                print 'cls_score[59]: '
+                print cls_score_value[:,59]
+		print 'cls_score[0]: '
+		print cls_score_value[:,0]
+                print 'labels[59]: '
+                print labels_value[:,59]
+		print 'labels[0]: '
+		print labels_value[:,0]
+                print 'label_weights_value[59]: '
+                print label_weights_value[:,59]
+		print 'label_weights_value[0]: '
+		print label_weights_value[:,0]
+                print 'cross_entropy_all_value[59]: '
+                print cross_entropy_all_value[:,59]
+		print 'cross_entropy_all_value[0]: '
+		print cross_entropy_all_value[:,0]
 
             # mask_gt_value, mask_weights_value, _ \
             # = sess.run([mask_gt, mask_weights, train_op],
@@ -265,7 +284,7 @@ class SolverWrapper(object):
 
             if (iter+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 last_snapshot_iter = iter
-                # self.snapshot(sess, iter)
+                self.snapshot(sess, iter)
 
         if last_snapshot_iter != iter:
             self.snapshot(sess, iter)

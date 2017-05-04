@@ -107,6 +107,9 @@ def _get_bbox_regression_labels(bbox_target_data, labels_data, mask_gt_data, num
         mask_weights[ind, :, :, cls] = np.ones((mask_gt_data.shape[1], mask_gt_data.shape[2]))
         labels[ind, cls] = 1
         label_weights[ind, cls] = 1
+    inds = np.where(clss == 0)[0]
+    for ind in inds:
+	label_weights[ind, 0] = 1
 
     return bbox_targets, bbox_inside_weights, labels, label_weights, mask_gt, mask_weights
 
@@ -205,5 +208,25 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
     labels_data = labels
     bbox_targets, bbox_inside_weights, labels, label_weights, mask_gt, mask_weights = \
         _get_bbox_regression_labels(bbox_target_data, labels_data, mask_gt_data, num_classes)
+
+    if cfg.TRACE:
+        print '========sample rois========'
+	print 'fg_inds'
+	print fg_inds
+	print 'bg_inds'
+	print bg_inds
+        print 'rois: '
+        print rois[0:5,:]
+        print 'labels: '
+        print labels[0:5,:]
+        print 'label_weights: '
+        print label_weights[0:5,:]
+        print 'bbox_targets: '
+        print bbox_targets[0:5,4*59:4*60]
+        print 'mask_weighs: '
+        print mask_weights[0:5,:,:,59]
+        print 'save mask_gt'
+        cv2.imwrite('/home/chsiyuan/Documents/542FinalProject/experiments/mask_gt.png',mask_gt[0,:,:,59]*255)
+
 
     return labels, rois, bbox_targets, bbox_inside_weights, mask_gt, label_weights, mask_weights

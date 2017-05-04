@@ -99,7 +99,7 @@ if __name__ == '__main__':
             print key
         
     # output_dir = get_output_dir(imdb, None)
-    output_dir = "../results/train"
+    output_dir = "/z/home/chsiyuan/Documents/542FinalProject/experiments/results/train"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     print 'Output will be saved to `{:s}`'.format(output_dir)

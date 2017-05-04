@@ -20,6 +20,9 @@ def prepare_roidb(imdb):
     each ground-truth box. The class with maximum overlap is also
     recorded.
     """
+    if cfg.TRACE:
+        print '======prepare roidb======'
+
     sizes = [PIL.Image.open(imdb.image_path_at(i)).size
              for i in xrange(imdb.num_images)]
     #******************************
@@ -50,8 +53,21 @@ def prepare_roidb(imdb):
         nonzero_inds = np.where(max_overlaps > 0)[0]
         assert all(max_classes[nonzero_inds] != 0)
 
+        if cfg.TRACE and i==0:
+            print 'image: ' + roidb[i]['image']
+            print 'width: %d'% roidb[i]['width']
+            print 'height: %d'% roidb[i]['height']
+            print 'deformed_mask: ' + roidb[i]['deformed_mask']
+            print 'max_classes: '
+	    print roidb[i]['max_classes'] 
+            print 'max_overlaps: '
+	    print roidb[i]['max_overlaps']
+
 def add_bbox_regression_targets(roidb):
     """Add information needed to train bounding-box regressors."""
+    if cfg.TRACE:
+        print '=====add bbox regression targets======'
+
     assert len(roidb) > 0
     assert 'max_classes' in roidb[0], 'Did you call prepare_roidb first?'
 
@@ -89,13 +105,13 @@ def add_bbox_regression_targets(roidb):
 
         means = sums / class_counts
         stds = np.sqrt(squared_sums / class_counts - means ** 2)
-
-    print 'bbox target means:'
-    print means
-    print means[1:, :].mean(axis=0) # ignore bg class
-    print 'bbox target stdevs:'
-    print stds
-    print stds[1:, :].mean(axis=0) # ignore bg class
+    if cfg.DEBUG:
+        print 'bbox target means:'
+        print means
+        print means[1:, :].mean(axis=0) # ignore bg class
+        print 'bbox target stdevs:'
+        print stds
+        print stds[1:, :].mean(axis=0) # ignore bg class
 
     # Normalize targets
     # default = true
@@ -107,6 +123,11 @@ def add_bbox_regression_targets(roidb):
                 cls_inds = np.where(targets[:, 0] == cls)[0]
                 roidb[im_i]['bbox_targets'][cls_inds, 1:] -= means[cls, :]
                 roidb[im_i]['bbox_targets'][cls_inds, 1:] /= stds[cls, :]
+
+            if cfg.TRACE and im_i==0:
+                print 'bbox_targets: '
+                print roidb[im_i]['bbox_targets']
+                    
     else:
         print "NOT normalizing targets"
 
