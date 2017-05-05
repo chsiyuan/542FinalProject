@@ -127,7 +127,7 @@ def test_single_frame(sess, net, image_name, mask, force_cpu, output_dir):
     im_mask = np.zeros(im_rgb.shape).astype(im_rgb.dtype)
     fig, ax = plt.subplots(figsize=(12, 12))
     # ax.imshow(im_rgb, aspect='equal')
-    CONF_THRESH = 0.8
+    CONF_THRESH = 0.5
     NMS_THRESH = 0.3
 
     for cls_ind, cls in enumerate(CLASSES[1:]):
