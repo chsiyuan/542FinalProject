@@ -84,7 +84,7 @@ class SolverWrapper(object):
                         '_iter_{:d}'.format(iter+1) + '_processed' + '.ckpt')
             filename2 = os.path.join(self.output_dir, filename2)
             self.saver.save(sess, filename2)
-            print 'Wrote snapshot to: {:s}'.format(filename)
+            print 'Wrote snapshot to: {:s}'.format(filename2)
 
             # restore net to original state
 	    with tf.variable_scope('bbox_pred', reuse=True):
@@ -199,10 +199,12 @@ class SolverWrapper(object):
 
         # optimizer and learning rate
         global_step = tf.Variable(0, trainable=False)
-        lr = tf.train.exponential_decay(cfg.TRAIN.LEARNING_RATE, global_step,
-                                        cfg.TRAIN.STEPSIZE, cfg.TRAIN.GAMMA, staircase=True)
-        momentum = cfg.TRAIN.MOMENTUM
-        train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss, global_step=global_step)
+        # lr = tf.train.exponential_decay(cfg.TRAIN.LEARNING_RATE, global_step,
+        #                                cfg.TRAIN.STEPSIZE, cfg.TRAIN.GAMMA, staircase=True)
+        # momentum = cfg.TRAIN.MOMENTUM
+        # train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss, global_step=global_step)
+	lr = cfg.TRAIN.LEARNING_RATE
+	train_op = tf.train.AdamOptimizer(lr).minimize(loss, global_step=global_step)        
 
         # intialize variables
         sess.run(tf.global_variables_initializer())
@@ -282,7 +284,7 @@ class SolverWrapper(object):
             if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
                 print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, loss_mask: %.4f, lr: %f'%\
                 (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value + loss_mask_value, \
-                    rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, loss_mask_value, lr.eval())
+                    rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, loss_mask_value, lr)
 
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
