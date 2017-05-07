@@ -229,4 +229,4 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
         cv2.imwrite('/home/chsiyuan/Documents/542FinalProject/experiments/mask_gt.png',mask_gt[0,:,:,59]*255)
 
 
-    return labels, rois, bbox_targets, bbox_inside_weights, mask_gt, label_weights, mask_weights
+    return labels_data, rois, bbox_targets, bbox_inside_weights, mask_gt, label_weights, mask_weights

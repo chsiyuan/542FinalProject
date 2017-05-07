@@ -162,12 +162,13 @@ class SolverWrapper(object):
         # R-CNN
         # classification loss (binary sigmoid cross entropy)
         cls_score = self.net.get_output('cls_score')
-        labels = tf.reshape(self.net.get_output('roi-data')[1],[-1, num_classes])
-        label_weights = tf.reshape(self.net.get_output('roi-data')[6],[-1, num_classes])
+        # labels = tf.reshape(self.net.get_output('roi-data')[1],[-1, num_classes])
+        labels = tf.reshape(self.net.get_output('roi-data')[1],[-1])
+        # label_weights = tf.reshape(self.net.get_output('roi-data')[6],[-1, num_classes])
+        cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=labels))
 
-        # cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
-        cross_entropy_all = tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_score, labels=labels), label_weights)
-        cross_entropy = tf.reduce_mean(tf.reduce_sum(cross_entropy_all, 1))
+        # cross_entropy_all = tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(logits=cls_score, labels=labels), label_weights)
+        # cross_entropy = tf.reduce_mean(tf.reduce_sum(cross_entropy_all, 1))
 
         # bounding box regression L1 loss
         bbox_pred = self.net.get_output('bbox_pred')
