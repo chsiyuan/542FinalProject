@@ -66,12 +66,20 @@ def vis_detections(im, im_mask, class_name, dets, segs, ax, thresh=0.5):
         if cfg.DEBUG:
             print bbox_round
             print seg.shape
-	    print fx
-	    print fy
+            print fx
+            print fy
+        print 'seg_resize'
+        print seg_resize
         seg_resize = cv2.resize(seg, None, fx=fx, fy=fy)
-        seg_resize = np.around(seg_resize).astype(im.dtype)
-	if cfg.DEBUG:
-	    print seg_resize.shape
+        # seg_resize = np.around(seg_resize).astype(im.dtype)
+        seg_resize[np.where(seg_resize >= 0.5)] = 1
+        seg_resize[np.where(seg_resize < 0.5)] = 0
+        print 'seg_resize (binary)'
+        print seg_resize
+
+        if cfg.DEBUG:
+            print seg_resize.shape
+
         # Map the resized mask to the original image
         rand_color = rand_hsl()
         im_mask_temp = np.zeros(im.shape).astype(im.dtype)
@@ -127,7 +135,7 @@ def test_single_frame(sess, net, image_name, mask, force_cpu, output_dir):
     im_mask = np.zeros(im_rgb.shape).astype(im_rgb.dtype)
     fig, ax = plt.subplots(figsize=(12, 12))
     # ax.imshow(im_rgb, aspect='equal')
-    CONF_THRESH = 0.8
+    CONF_THRESH = 0.6
     NMS_THRESH = 0.3
 
     for cls_ind, cls in enumerate(CLASSES[1:]):
