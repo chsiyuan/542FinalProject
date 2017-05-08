@@ -63,7 +63,8 @@ def proposal_target_layer(rpn_rois, gt_boxes, gt_masks,_num_classes):
         print 'ratio: {:.3f}'.format(float(_fg_num) / float(_bg_num))
 
     rois = rois.reshape(-1,5)
-    labels = labels.reshape(-1,_num_classes)
+    # labels = labels.reshape(-1,_num_classes)
+    labels = labels.reshape(-1,1)
     bbox_targets = bbox_targets.reshape(-1,_num_classes*4)
     bbox_inside_weights = bbox_inside_weights.reshape(-1,_num_classes*4)
     mask_gt = mask_gt.reshape(-1,cfg.TRAIN.ROI_OUTPUT_SIZE *2,cfg.TRAIN.ROI_OUTPUT_SIZE *2, _num_classes)
@@ -229,4 +230,4 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
         cv2.imwrite('/home/chsiyuan/Documents/542FinalProject/experiments/mask_gt.png',mask_gt[0,:,:,59]*255)
 
 
-    return labels, rois, bbox_targets, bbox_inside_weights, mask_gt, label_weights, mask_weights
+    return labels_data, rois, bbox_targets, bbox_inside_weights, mask_gt, label_weights, mask_weights
