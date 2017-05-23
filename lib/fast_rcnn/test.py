@@ -197,14 +197,14 @@ def im_detect(sess, net, im, boxes=None):
         # Apply bounding-box regression deltas
         box_deltas = bbox_pred
         if cfg.DEBUG:
-            print 'box_delta:'
-            print box_deltas[0,:]
+            # print 'box_delta:'
+            # print box_deltas[0,:]
             print 'cls_prob'
-            print cls_prob[0,:]
-            print 'boxes:'
-            print boxes[0]
-            print 'mask'
-            print mask_prob[0,:,:,1]
+            print cls_prob[0:10,:]
+            # print 'boxes:'
+            # print boxes[0]
+            # print 'mask'
+            # print mask_prob[0,:,:,1]
         pred_boxes = bbox_transform_inv(boxes, box_deltas)
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
     else:
