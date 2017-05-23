@@ -68,16 +68,13 @@ def vis_detections(im, im_mask, class_name, dets, segs, ax, thresh=0.5):
             print seg.shape
             print fx
             print fy
-        print 'seg_resize'
-        print seg_resize
         seg_resize = cv2.resize(seg, None, fx=fx, fy=fy)
-        # seg_resize = np.around(seg_resize).astype(im.dtype)
-        seg_resize[np.where(seg_resize >= 0.5)] = 1
-        seg_resize[np.where(seg_resize < 0.5)] = 0
-        print 'seg_resize (binary)'
-        print seg_resize
-
-        if cfg.DEBUG:
+	seg_resize -= 0.1
+	seg_resize = np.around(seg_resize).astype(im.dtype)
+	# seg_resize[np.where(seg_resize > 0.5)] = 1
+	# seg_resize[np.where(seg_resize <= 0.5)] = 0
+        # seg_resize.astype(im.dtype)
+	if cfg.DEBUG:
             print seg_resize.shape
 
         # Map the resized mask to the original image
@@ -85,7 +82,7 @@ def vis_detections(im, im_mask, class_name, dets, segs, ax, thresh=0.5):
         im_mask_temp = np.zeros(im.shape).astype(im.dtype)
         for i in range(3):
             im_mask_temp[bbox_round[1]:bbox_round[3]+1, bbox_round[0]:bbox_round[2]+1, i] \
-            += (rand_color[i]*seg_resize)
+            += rand_color[i]*seg_resize
         im_mask += im_mask_temp
 
     #     ax.add_patch(
@@ -135,7 +132,7 @@ def test_single_frame(sess, net, image_name, mask, force_cpu, output_dir):
     im_mask = np.zeros(im_rgb.shape).astype(im_rgb.dtype)
     fig, ax = plt.subplots(figsize=(12, 12))
     # ax.imshow(im_rgb, aspect='equal')
-    CONF_THRESH = 0.6
+    CONF_THRESH = 0.8
     NMS_THRESH = 0.3
 
     for cls_ind, cls in enumerate(CLASSES[1:]):
@@ -233,7 +230,7 @@ if __name__ == '__main__':
     #     _, _= im_detect(sess, net, im)
 
     images = os.listdir(input_dir) 
-    deformed_mask_name = '../data/test/masks/deformation_train_000000000074.png'
+    deformed_mask_name = '../data/test/masks/deformation_train_000000000030.png'
     # load mask of first frame
     mask = cv2.imread(deformed_mask_name,0)
     for image in images: 
