@@ -182,7 +182,7 @@ def im_detect(sess, net, im, boxes=None):
 
     if cfg.TEST.HAS_RPN:
         assert len(im_scales) == 1, "Only single-image batch implemented"
-        boxes = rois[:, 1:5] #/ im_scales[0]
+        boxes = rois[:, 1:5] # / im_scales[0]
 
 
     if cfg.TEST.SVM:
@@ -197,18 +197,16 @@ def im_detect(sess, net, im, boxes=None):
         # Apply bounding-box regression deltas
         box_deltas = bbox_pred
         if cfg.DEBUG:
-            print 'box_delta:'
-            print box_deltas[0,:]
+            # print 'box_delta:'
+            #print box_deltas[0,:]
             print 'cls_prob'
             print cls_prob[0,:]
-            print 'boxes:'
-            print boxes[0]
-            print 'mask'
-            print mask_prob[0,:,:,1]
+            # print 'boxes:'
+            # print boxes[0]
         pred_boxes = bbox_transform_inv(boxes, box_deltas)
 	pred_boxes /= im_scales[0]
-	print 'im_scales ======>'
-	print im_scales
+	# print 'im_scales ======>'
+	# print im_scales
         pred_boxes = _clip_boxes(pred_boxes, im.shape)
     else:
         # Simply repeat the boxes, once for each class

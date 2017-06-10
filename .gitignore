@@ -10,3 +10,4 @@ make.sh
 *.mat
 *.zip
 *.txt
+*.ckpt*
