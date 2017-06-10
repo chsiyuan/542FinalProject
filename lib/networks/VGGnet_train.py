@@ -52,14 +52,14 @@ class VGGnet_train(Network):
              .conv(3, 3, 512, 1, 1, name='conv5_3', ))
         #========= RPN ============
         (self.feed('conv5_3')
-             .conv(3,3,512,1,1,name='rpn_conv/3x3', trainable = False)
-             .conv(1,1,len(anchor_scales)*3*2 ,1 , 1, padding='VALID', relu = False, name='rpn_cls_score', trainable = False))
+             .conv(3,3,512,1,1,name='rpn_conv/3x3')
+             .conv(1,1,len(anchor_scales)*3*2 ,1 , 1, padding='VALID', relu = False, name='rpn_cls_score'))
 
         (self.feed('rpn_cls_score','gt_boxes','im_info','data')
              .anchor_target_layer(_feat_stride, anchor_scales, name = 'rpn-data' ))
 
         (self.feed('rpn_conv/3x3')
-             .conv(1,1,len(anchor_scales)*3*4, 1, 1, padding='VALID', relu = False, name='rpn_bbox_pred', trainable = False))
+             .conv(1,1,len(anchor_scales)*3*4, 1, 1, padding='VALID', relu = False, name='rpn_bbox_pred'))
 
         #========= RoI Proposal ============
         (self.feed('rpn_cls_score')   
