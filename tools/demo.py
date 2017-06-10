@@ -13,15 +13,30 @@ import argparse
 from networks.factory import get_network
 
 
-CLASSES = ('__background__',
-           'aeroplane', 'bicycle', 'bird', 'boat',
-           'bottle', 'bus', 'car', 'cat', 'chair',
-           'cow', 'diningtable', 'dog', 'horse',
-           'motorbike', 'person', 'pottedplant',
-           'sheep', 'sofa', 'train', 'tvmonitor')
-
+# CLASSES = ('__background__',
+#            'aeroplane', 'bicycle', 'bird', 'boat',
+#            'bottle', 'bus', 'car', 'cat', 'chair',
+#            'cow', 'diningtable', 'dog', 'horse',
+#            'motorbike', 'person', 'pottedplant',
+#            'sheep', 'sofa', 'train', 'tvmonitor')
 
 #CLASSES = ('__background__','person','bike','motorbike','car','bus')
+
+CLASSES = ('__background__',
+           'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 
+           'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 
+           'stop sign', 'parking meter',  'bench',  'bird',  'cat',  
+           'dog',  'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 
+           'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase',
+           'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat',
+           'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle',
+           'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 
+           'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 
+           'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 
+           'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 
+           'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 
+           'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 
+           'hair drier', 'toothbrush')
 
 def vis_detections(im, class_name, dets,ax, thresh=0.5):
     """Draw detected bounding boxes."""
@@ -84,7 +99,7 @@ def demo(sess, net, image_name, force_cpu):
                           cls_scores[:, np.newaxis])).astype(np.float32)
         keep = nms(dets, NMS_THRESH, force_cpu)
         dets = dets[keep, :]
-	print ('After nms, {:d} object proposals').format(dets.shape[0])
+        print ('After nms, {:d} object proposals').format(dets.shape[0])
         vis_detections(im, cls, dets, ax, thresh=CONF_THRESH)
 
 def parse_args():
@@ -110,13 +125,13 @@ if __name__ == '__main__':
 
     force_cpu = False
     if args.cpu_mode == True:
-	print '\nUse cpu mode\n'
-	cfg.USE_GPU_NMS = False
-	force_cpu = True
+	   print 'Use cpu mode'
+	   cfg.USE_GPU_NMS = False
+	   force_cpu = True
     else:
-	print '\nUse gpu mode\n'
-	cfg.USE_GPU_NMS = True
-	cfg.GPU_ID = args.gpu_id
+	   print 'Use gpu mode'
+	   cfg.USE_GPU_NMS = True
+	   cfg.GPU_ID = args.gpu_id
 
     if args.model == ' ':
         raise IOError(('Error: Model not found.\n'))
@@ -139,7 +154,7 @@ if __name__ == '__main__':
         _, _= im_detect(sess, net, im)
 
 
-    im_names = ['001763.jpg']
+    im_names = ['/home/chsiyuan/Documents/542FinalProject/data/test/images/COCO_val2014_000000000074.jpg']
 
 
     for im_name in im_names:
@@ -147,5 +162,5 @@ if __name__ == '__main__':
         print 'Demo for data/demo/{}'.format(im_name)
         demo(sess, net, im_name, force_cpu)
 
-    plt.savefig('demo_out.png')
+    plt.savefig('/home/chsiyuan/Documents/542FinalProject/data/test/result/result_COCO_val2014_000000000074.png')
 
